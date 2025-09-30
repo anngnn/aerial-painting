@@ -118,13 +118,14 @@ def usr(flyer):
     setpoint8 = setpoint5
 
     #BACK to setpoint2 (above droxel)
+    setpoint9 = setpoint2
 
     #arm the flyer
     flyer.arm()
     flyer.run_controller()
 
     current_time = time.time() - START
-    time_at_each_setpoint = 10 #seconds
+    time_at_each_setpoint = 3 #seconds
     time_of_last_switch = 0
 
     stepped = False
@@ -154,9 +155,34 @@ def usr(flyer):
                 flyer.waypoint(current_waypoint)
                 time_of_last_switch = current_time
             elif np.all(current_waypoint == setpoint2):
-                current_waypoint = np.copy(setpoint)
+                current_waypoint = np.copy(setpoint3)
                 flyer.waypoint(current_waypoint)
                 time_of_last_switch = current_time
+            elif np.all(current_waypoint == setpoint3):
+                current_waypoint = np.copy(setpoint4)
+                flyer.waypoint(current_waypoint)
+                time_of_last_switch = current_time
+            elif np.all(current_waypoint == setpoint4):
+                current_waypoint = np.copy(setpoint5)
+                flyer.waypoint(current_waypoint)
+                time_of_last_switch = current_time
+            elif np.all(current_waypoint == setpoint5):
+                current_waypoint = np.copy(setpoint6)
+                flyer.waypoint(current_waypoint)
+                time_of_last_switch = current_time
+            elif np.all(current_waypoint == setpoint6):
+                current_waypoint = np.copy(setpoint7)
+                flyer.waypoint(current_waypoint)
+                time_of_last_switch = current_time
+            elif np.all(current_waypoint == setpoint7):
+                current_waypoint = np.copy(setpoint8)
+                flyer.waypoint(current_waypoint)
+                time_of_last_switch = current_time
+            elif np.all(current_waypoint == setpoint8):
+                current_waypoint = np.copy(setpoint9)
+                flyer.waypoint(current_waypoint)
+                time_of_last_switch = current_time
+
             # stepped = True
 
             
