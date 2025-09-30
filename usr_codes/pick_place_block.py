@@ -77,8 +77,8 @@ def usr(flyer):
     flyer.waypoint(setpoint)
     current_waypoint = np.copy(setpoint)
 
-    #step is 0.5m in length, at unit vector 1,1,1
     #ABOVE droxel
+    #0.3m in x dir
     unit_vec = np.array([1,0,0],dtype='int')
     distance = 0.3 #m
     vec = (distance/np.linalg.norm(unit_vec))*unit_vec
@@ -86,6 +86,7 @@ def usr(flyer):
     setpoint2 = setpoint + np.array([vec[0], vec[1], vec[2], 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
     #DOWN to pick
+    #-0.2m in z dir
     unit_vec = np.array([0,0,1],dtype='int')
     distance = -0.2 #m
     vec = (distance/np.linalg.norm(unit_vec))*unit_vec
@@ -96,6 +97,7 @@ def usr(flyer):
     setpoint4 = setpoint2
 
     #ABOVE droxel placement
+    #0.3 in y dir
     unit_vec = np.array([0,1,0],dtype='int')
     distance = 0.3 #m
     vec = (distance/np.linalg.norm(unit_vec))*unit_vec
@@ -103,6 +105,7 @@ def usr(flyer):
     setpoint5 = setpoint4 + np.array([vec[0], vec[1], vec[2], 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
     #DOWN to place
+    #-0.2m in z dir
     unit_vec = np.array([0,0,1],dtype='int')
     distance = -0.2 #m
     vec = (distance/np.linalg.norm(unit_vec))*unit_vec
