@@ -88,14 +88,14 @@ def usr(flyer):
     #DOWN to pick
     #-0.3m in z dir
     unit_vec = np.array([0,0,1],dtype='int')
-    distance = -0.3 #m
+    distance = -0.4 #m
     vec = (distance/np.linalg.norm(unit_vec))*unit_vec
 
     setpoint3 = setpoint2 + np.array([vec[0], vec[1], vec[2], 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
     #UP after pick
     unit_vec = np.array([0,0,1],dtype='int')
-    distance = 0.4 #m
+    distance = 0.5 #m
     vec = (distance/np.linalg.norm(unit_vec))*unit_vec
     setpoint4 = setpoint3 + np.array([vec[0], vec[1], vec[2], 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
@@ -110,7 +110,7 @@ def usr(flyer):
     #DOWN to place
     #-0.3m in z dir
     unit_vec = np.array([0,0,1],dtype='int')
-    distance = -0.3 #m
+    distance = -0.5 #m
     vec = (distance/np.linalg.norm(unit_vec))*unit_vec
 
     setpoint6 = setpoint5 + np.array([vec[0], vec[1], vec[2], 0, 0, 0, 0, 0, 0, 0, 0, 0])
@@ -122,15 +122,15 @@ def usr(flyer):
 
     #UP to release droxel
     unit_vec = np.array([0,0,1],dtype='int')
-    distance = 0.4 #m
+    distance = 0.6 #m
     vec = (distance/np.linalg.norm(unit_vec))*unit_vec
 
     setpoint8 = setpoint7 + np.array([vec[0], vec[1], vec[2], 0, 0, 0, 0, 0, np.pi/2, 0, 0, 0])
 
     #BACK to setpoint2 (above droxel)
     setpoint9 = setpoint2
-    unit_vec = np.array([1,0,0],dtype='int')
-    distance = 0.2 #m
+    unit_vec = np.array([1,1,0],dtype='int')
+    distance = -0.5 #m
     vec = (distance/np.linalg.norm(unit_vec))*unit_vec
 
     setpoint9 = setpoint9 + np.array([vec[0], vec[1], vec[2], 0, 0, 0, 0, 0, 0, 0, 0, 0])
