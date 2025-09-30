@@ -80,34 +80,37 @@ def usr(flyer):
     #ABOVE droxel
     #0.3m in x dir
     unit_vec = np.array([1,0,0],dtype='int')
-    distance = 0.3 #m
+    distance = 0.5 #m
     vec = (distance/np.linalg.norm(unit_vec))*unit_vec
 
     setpoint2 = setpoint + np.array([vec[0], vec[1], vec[2], 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
     #DOWN to pick
-    #-0.2m in z dir
+    #-0.3m in z dir
     unit_vec = np.array([0,0,1],dtype='int')
-    distance = -0.2 #m
+    distance = -0.3 #m
     vec = (distance/np.linalg.norm(unit_vec))*unit_vec
 
     setpoint3 = setpoint2 + np.array([vec[0], vec[1], vec[2], 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
     #UP after pick
-    setpoint4 = setpoint2
+    unit_vec = np.array([0,0,1],dtype='int')
+    distance = 0.4 #m
+    vec = (distance/np.linalg.norm(unit_vec))*unit_vec
+    setpoint4 = setpoint3 + np.array([vec[0], vec[1], vec[2], 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
     #ABOVE droxel placement
-    #0.3 in y dir
+    #0.5 in y dir
     unit_vec = np.array([0,1,0],dtype='int')
-    distance = 0.3 #m
+    distance = 0.5 #m
     vec = (distance/np.linalg.norm(unit_vec))*unit_vec
 
     setpoint5 = setpoint4 + np.array([vec[0], vec[1], vec[2], 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
     #DOWN to place
-    #-0.2m in z dir
+    #-0.3m in z dir
     unit_vec = np.array([0,0,1],dtype='int')
-    distance = -0.2 #m
+    distance = -0.3 #m
     vec = (distance/np.linalg.norm(unit_vec))*unit_vec
 
     setpoint6 = setpoint5 + np.array([vec[0], vec[1], vec[2], 0, 0, 0, 0, 0, 0, 0, 0, 0])
@@ -118,17 +121,26 @@ def usr(flyer):
     setpoint7 = setpoint6 + np.array([vec[0], vec[1], vec[2], 0, 0, 0, 0, 0, -np.pi/2, 0, 0, 0])
 
     #UP to release droxel
-    setpoint8 = setpoint5
+    unit_vec = np.array([0,0,1],dtype='int')
+    distance = 0.4 #m
+    vec = (distance/np.linalg.norm(unit_vec))*unit_vec
+
+    setpoint8 = setpoint7 + np.array([vec[0], vec[1], vec[2], 0, 0, 0, 0, 0, np.pi/2, 0, 0, 0])
 
     #BACK to setpoint2 (above droxel)
     setpoint9 = setpoint2
+    unit_vec = np.array([1,0,0],dtype='int')
+    distance = 0.2 #m
+    vec = (distance/np.linalg.norm(unit_vec))*unit_vec
+
+    setpoint9 = setpoint9 + np.array([vec[0], vec[1], vec[2], 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
     #arm the flyer
     flyer.arm()
     flyer.run_controller()
 
     current_time = time.time() - START
-    time_at_each_setpoint = 3 #seconds
+    time_at_each_setpoint = 5 #seconds
     time_of_last_switch = 0
 
     stepped = False
