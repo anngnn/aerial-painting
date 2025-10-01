@@ -51,8 +51,12 @@ import time
 import struct
 
 '''
-UP, RIGHT, DOWN, UP, RIGHT2, DOWN, TWIST_YAW, UP
+UP, ABOVE_PICK, DOWN, UP, ABOVE_PLACE, DOWN, TWIST_YAW, UP
 '''
+
+
+current_waypoint_index = 0
+time_at_each_setpoint = 5  
 def usr(flyer):
     START = time.time()
 
@@ -70,68 +74,61 @@ def usr(flyer):
     
     flyer.log(['The user code is running. The flyer is localized to: ' + str(first_pos)])
     
+    list_waypoints = []
+    
+    def make_wp(base_setpoint, unit_vector, distance):
+        unit_vec = np.array(unit_vector,dtype='int')
+        vec = (distance/np.linalg.norm(unit_vec))*unit_vec
+
+        setpoint = base_setpoint + np.array([vec[0], vec[1], vec[2], 0, 0, 0, 0, 0, 0, 0, 0, 0])
+        return setpoint
+
+    def move_vertical_increment(base_setpoint, dist, step_size):
+        small_dist = dist / step_size
+        curr_setpoint = base_setpoint
+        for _ in range (step_size):
+            setpoint = make_wp(curr_setpoint, [0,0,1], small_dist)
+            list_waypoints.append(setpoint)
+            curr_setpoint = setpoint
+
     #set the first waypoint
     setpoint = first_pos
-    setpoint[2] = setpoint[2] + 0.5 #+ (0.15*(np.random.rand()-0.5)) #meters
+    setpoint[2] = setpoint[2] + 0.5
     setpoint[3:] = 0
     flyer.waypoint(setpoint)
     current_waypoint = np.copy(setpoint)
 
     #ABOVE droxel
-    #0.3m in x dir
-    unit_vec = np.array([1,0,0],dtype='int')
-    distance = 0.5 #m
-    vec = (distance/np.linalg.norm(unit_vec))*unit_vec
-
-    setpoint2 = setpoint + np.array([vec[0], vec[1], vec[2], 0, 0, 0, 0, 0, 0, 0, 0, 0])
+    setpoint2 = make_wp(setpoint, [1,0,0], 0.5)
+    list_waypoints.append(setpoint2)
 
     #DOWN to pick
-    #-0.3m in z dir
-    unit_vec = np.array([0,0,1],dtype='int')
-    distance = -0.46 #m
-    vec = (distance/np.linalg.norm(unit_vec))*unit_vec
-
-    setpoint3 = setpoint2 + np.array([vec[0], vec[1], vec[2], 0, 0, 0, 0, 0, 0, 0, 0, 0])
+    move_vertical_increment(setpoint2, -0.46, 5)
 
     #UP after pick
-    unit_vec = np.array([0,0,1],dtype='int')
-    distance = 0.55 #m
-    vec = (distance/np.linalg.norm(unit_vec))*unit_vec
-    setpoint4 = setpoint3 + np.array([vec[0], vec[1], vec[2], 0, 0, 0, 0, 0, 0, 0, 0, 0])
+    setpoint4 = make_wp(setpoint, [0,0,1], 0.55)
+    list_waypoints.append(setpoint4)
 
     #ABOVE droxel placement
-    #0.5 in y dir
-    unit_vec = np.array([0,1,0],dtype='int')
-    distance = 0.5 #m
-    vec = (distance/np.linalg.norm(unit_vec))*unit_vec
-
-    setpoint5 = setpoint4 + np.array([vec[0], vec[1], vec[2], 0, 0, 0, 0, 0, 0, 0, 0, 0])
+    setpoint5 = make_wp(setpoint4, [0,1,0], 0.5)
+    list_waypoints.append(setpoint5)
 
     #DOWN to place
-    #-0.3m in z dir
-    unit_vec = np.array([0,0,1],dtype='int')
-    distance = -0.55 #m
-    vec = (distance/np.linalg.norm(unit_vec))*unit_vec
-
-    setpoint6 = setpoint5 + np.array([vec[0], vec[1], vec[2], 0, 0, 0, 0, 0, 0, 0, 0, 0])
+    move_vertical_increment(setpoint5, -0.55, 5)
+    setpoint6 = make_wp(setpoint5, [0,0,1], -0.55) # last position after moving down incrementally
 
     #TWIST YAW to release droxel(shorter time at this setpoint)
     setpoint7 = setpoint6 + np.array([0, 0, 0, 0, 0, 0, 0, 0, -np.pi/2, 0, 0, 0])
+    list_waypoints.append(setpoint7)
 
     #UP to release droxel
-    unit_vec = np.array([0,0,1],dtype='int')
-    distance = 0.65 #m
-    vec = (distance/np.linalg.norm(unit_vec))*unit_vec
-
-    setpoint8 = setpoint7 + np.array([vec[0], vec[1], vec[2], 0, 0, 0, 0, 0, 0, 0, 0, 0])
+    setpoint8 = make_wp(setpoint7, [0,0,1], 0.65)
+    list_waypoints.append(setpoint8)
 
     #BACK to setpoint2 (above droxel)
     setpoint9 = setpoint2
-    unit_vec = np.array([1,1,0],dtype='int')
-    distance = -0.5 #m
-    vec = (distance/np.linalg.norm(unit_vec))*unit_vec
-
-    setpoint9 = setpoint9 + np.array([vec[0], vec[1], vec[2], 0, 0, 0, 0, 0, 0, 0, 0, 0])
+    setpoint9 = make_wp(setpoint9, [1,1,0], -0.5)
+    list_waypoints.append(setpoint9)
 
     #arm the flyer
     flyer.arm()
@@ -161,43 +158,26 @@ def usr(flyer):
             flyer.log(log_list)
 
         current_time = time.time() - START
-        if int(current_time) % time_at_each_setpoint == 0 and current_time - time_of_last_switch > 1 and not stepped:
-            print('new setpoint.')
-            if np.all(current_waypoint == setpoint):
-                current_waypoint = np.copy(setpoint2)
+        
+        # Check if it's time to switch waypoints
+        if (current_time - time_of_last_switch > time_at_each_setpoint and not stepped):
+            if current_waypoint_index < len(list_waypoints):
+                
+                print('Switching to waypoint', current_waypoint_index)
+                
+                # Get the next waypoint
+                current_waypoint = np.copy(list_waypoints[current_waypoint_index])
                 flyer.waypoint(current_waypoint)
+                
+                # Check if this is the twist waypoint (setpoint7 is at a specific index)
+                # 5 increments down, setpoint7 (twist), setpoint8, setpoint9
+                if current_waypoint_index == 11:  # Adjust index based on where setpoint7 actually is
+                    time_at_each_setpoint = 1  # Only 1 second for twist
+                else:
+                    time_at_each_setpoint = 5  # Back to 5 seconds for others
+                
                 time_of_last_switch = current_time
-            elif np.all(current_waypoint == setpoint2):
-                current_waypoint = np.copy(setpoint3)
-                flyer.waypoint(current_waypoint)
-                time_of_last_switch = current_time
-            elif np.all(current_waypoint == setpoint3):
-                current_waypoint = np.copy(setpoint4)
-                flyer.waypoint(current_waypoint)
-                time_of_last_switch = current_time
-            elif np.all(current_waypoint == setpoint4):
-                current_waypoint = np.copy(setpoint5)
-                flyer.waypoint(current_waypoint)
-                time_of_last_switch = current_time
-            elif np.all(current_waypoint == setpoint5):
-                current_waypoint = np.copy(setpoint6)
-                flyer.waypoint(current_waypoint)
-                time_of_last_switch = current_time
-            elif np.all(current_waypoint == setpoint6):
-                current_waypoint = np.copy(setpoint7)
-                flyer.waypoint(current_waypoint) # shorter delay after twist
-                time_of_last_switch = current_time + 3
-            elif np.all(current_waypoint == setpoint7):
-                current_waypoint = np.copy(setpoint8)
-                flyer.waypoint(current_waypoint)
-                time_of_last_switch = current_time
-            elif np.all(current_waypoint == setpoint8):
-                current_waypoint = np.copy(setpoint9)
-                flyer.waypoint(current_waypoint)
-                time_of_last_switch = current_time
-
-            # stepped = True
-
+                current_waypoint_index += 1
             
 
         
