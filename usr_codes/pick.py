@@ -88,14 +88,14 @@ def usr(flyer):
     #DOWN to pick
     #-0.3m in z dir
     unit_vec = np.array([0,0,1],dtype='int')
-    distance = -0.3 #m
+    distance = -0.46 #m
     vec = (distance/np.linalg.norm(unit_vec))*unit_vec
 
     setpoint3 = setpoint2 + np.array([vec[0], vec[1], vec[2], 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
     #UP after pick
     unit_vec = np.array([0,0,1],dtype='int')
-    distance = 0.4 #m
+    distance = 0.55 #m
     vec = (distance/np.linalg.norm(unit_vec))*unit_vec
     setpoint4 = setpoint3 + np.array([vec[0], vec[1], vec[2], 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
@@ -110,7 +110,7 @@ def usr(flyer):
     #DOWN to place
     #-0.3m in z dir
     unit_vec = np.array([0,0,1],dtype='int')
-    distance = -0.4 #m
+    distance = -0.55 #m
     vec = (distance/np.linalg.norm(unit_vec))*unit_vec
 
     setpoint6 = setpoint5 + np.array([vec[0], vec[1], vec[2], 0, 0, 0, 0, 0, 0, 0, 0, 0])
@@ -120,10 +120,10 @@ def usr(flyer):
 
     #UP to release droxel
     unit_vec = np.array([0,0,1],dtype='int')
-    distance = 0.5 #m
+    distance = 0.65 #m
     vec = (distance/np.linalg.norm(unit_vec))*unit_vec
 
-    setpoint8 = setpoint7 + np.array([vec[0], vec[1], vec[2], 0, 0, 0, 0, 0, np.pi/2, 0, 0, 0])
+    setpoint8 = setpoint7 + np.array([vec[0], vec[1], vec[2], 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
     #BACK to setpoint2 (above droxel)
     setpoint9 = setpoint2
@@ -185,8 +185,8 @@ def usr(flyer):
                 time_of_last_switch = current_time
             elif np.all(current_waypoint == setpoint6):
                 current_waypoint = np.copy(setpoint7)
-                flyer.waypoint(current_waypoint)
-                time_of_last_switch = current_time
+                flyer.waypoint(current_waypoint) # shorter delay after twist
+                time_of_last_switch = current_time + 3
             elif np.all(current_waypoint == setpoint7):
                 current_waypoint = np.copy(setpoint8)
                 flyer.waypoint(current_waypoint)
