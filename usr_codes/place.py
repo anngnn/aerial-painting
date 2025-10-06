@@ -155,9 +155,11 @@ def usr(flyer):
             if np.all(current_waypoint == setpoint):
                 current_waypoint = np.copy(setpoint2)
                 flyer.waypoint(current_waypoint)
+                time_at_each_setpoint = 15 #seconds
+
                 time_of_last_switch = current_time
 
-            # elif np.all(current_waypoint == setpoint2):
+            elif np.all(current_waypoint == setpoint2):
             #     current_waypoint = np.copy(setpoint3_1)
             #     flyer.waypoint(current_waypoint)
             #     time_of_last_switch = current_time
@@ -191,9 +193,9 @@ def usr(flyer):
             # elif np.all(current_waypoint == setpoint4):
                 current_waypoint = np.copy(setpoint5)
                 flyer.waypoint(current_waypoint)
+                time_at_each_setpoint = 3
+                  
                 time_of_last_switch = current_time
-
-
             elif np.all(current_waypoint == setpoint5):
                 current_waypoint = np.copy(setpoint6_1)
                 flyer.waypoint(current_waypoint)
