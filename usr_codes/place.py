@@ -103,12 +103,24 @@ def usr(flyer):
     setpoint5 = make_wp(setpoint2, [0,1,0], 0.5)
 
     #DOWN to place
-    setpoint6_1 = make_wp(setpoint5, [0,0,1], -0.1)
-    setpoint6_2 = make_wp(setpoint6_1, [0,0,1], -0.1)
-    setpoint6_3 = make_wp(setpoint6_2, [0,0,1], -0.1)
-    setpoint6_4 = make_wp(setpoint6_3, [0,0,1], -0.1)
-    setpoint6_5 = make_wp(setpoint6_4, [0,0,1], -0.1)
-    setpoint6 = make_wp(setpoint6_5, [0,0,1], -0.03)
+    # setpoint6_1 = make_wp(setpoint5, [0,0,1], -0.1)
+    # setpoint6_2 = make_wp(setpoint6_1, [0,0,1], -0.1)
+    # setpoint6_3 = make_wp(setpoint6_2, [0,0,1], -0.1)
+    # setpoint6_4 = make_wp(setpoint6_3, [0,0,1], -0.1)
+    # setpoint6_5 = make_wp(setpoint6_4, [0,0,1], -0.1)
+    # setpoint6 = make_wp(setpoint6_5, [0,0,1], -0.02)
+
+    setpoint6_1 = make_wp(setpoint5, [0,0,1], -0.05)
+    setpoint6_2 = make_wp(setpoint6_1, [0,0,1], -0.05)
+    setpoint6_3 = make_wp(setpoint6_2, [0,0,1], -0.05)
+    setpoint6_4 = make_wp(setpoint6_3, [0,0,1], -0.05)
+    setpoint6_5 = make_wp(setpoint6_4, [0,0,1], -0.05)
+    setpoint6_6 = make_wp(setpoint6_5, [0,0,1], -0.05)
+    setpoint6_7 = make_wp(setpoint6_6, [0,0,1], -0.05)
+    setpoint6_8 = make_wp(setpoint6_7, [0,0,1], -0.05)
+    setpoint6_9 = make_wp(setpoint6_8, [0,0,1], -0.05)
+    setpoint6 = make_wp(setpoint6_9, [0,0,1], -0.03)
+
 
     #TWIST YAW to release droxel(shorter time at this setpoint)
     setpoint7 = setpoint6 + np.array([0, 0, 0, 0, 0, 0, 0, 0, -np.pi/2, 0, 0, 0])
@@ -155,7 +167,7 @@ def usr(flyer):
             if np.all(current_waypoint == setpoint):
                 current_waypoint = np.copy(setpoint2)
                 flyer.waypoint(current_waypoint)
-                time_at_each_setpoint = 15 #seconds
+                time_at_each_setpoint = 40 #seconds
 
                 time_of_last_switch = current_time
 
@@ -227,6 +239,34 @@ def usr(flyer):
 
                 time_of_last_switch = current_time
             elif np.all(current_waypoint == setpoint6_5):
+                current_waypoint = np.copy(setpoint6_6)
+                flyer.waypoint(current_waypoint)
+                time_at_each_setpoint = 1  # Shorter time for yaw twist
+
+                time_of_last_switch = current_time
+            
+            elif np.all(current_waypoint == setpoint6_6):
+                current_waypoint = np.copy(setpoint6_7)
+                flyer.waypoint(current_waypoint)
+                time_at_each_setpoint = 1  # Shorter time for yaw twist
+
+                time_of_last_switch = current_time
+            
+            elif np.all(current_waypoint == setpoint6_7):
+                current_waypoint = np.copy(setpoint6_8)
+                flyer.waypoint(current_waypoint)
+                time_at_each_setpoint = 1  # Shorter time for yaw twist
+
+                time_of_last_switch = current_time
+            
+            elif np.all(current_waypoint == setpoint6_8):
+                current_waypoint = np.copy(setpoint6_9)
+                flyer.waypoint(current_waypoint)
+                time_at_each_setpoint = 1  # Shorter time for yaw twist
+
+                time_of_last_switch = current_time
+            
+            elif np.all(current_waypoint == setpoint6_9):
                 current_waypoint = np.copy(setpoint6)
                 flyer.waypoint(current_waypoint)
                 time_at_each_setpoint = 1  # Shorter time for yaw twist
@@ -237,6 +277,7 @@ def usr(flyer):
                 current_waypoint = np.copy(setpoint7)
                 flyer.waypoint(current_waypoint)
                 time_at_each_setpoint = 0.5  # Shorter time for yaw twist
+
                 time_of_last_switch = current_time
             elif np.all(current_waypoint == setpoint7):
                 current_waypoint = np.copy(setpoint8)
@@ -245,6 +286,8 @@ def usr(flyer):
             elif np.all(current_waypoint == setpoint8):
                 current_waypoint = np.copy(setpoint9)
                 flyer.waypoint(current_waypoint)
+                time_at_each_setpoint = 5  # Shorter time for yaw twist
+
                 time_of_last_switch = current_time
 
             # stepped = True
