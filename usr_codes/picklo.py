@@ -119,14 +119,15 @@ def usr(flyer):
     setpoint6_7 = make_wp(setpoint6_6, [0,0,1], -0.05)
     setpoint6_8 = make_wp(setpoint6_7, [0,0,1], -0.05)
     setpoint6_9 = make_wp(setpoint6_8, [0,0,1], -0.05)
-    setpoint6 = make_wp(setpoint6_9, [0,0,1], -0.03)
+    setpoint6_10 = make_wp(setpoint6_9, [0,0,1], -0.05)
+    setpoint6 = make_wp(setpoint6_10, [0,0,1], -0.05)
 
 
     #TWIST YAW to release droxel(shorter time at this setpoint)
-    setpoint7 = setpoint6 + np.array([0, 0, 0, 0, 0, 0, 0, 0, -np.pi/2, 0, 0, 0])
+    # setpoint7 = setpoint6 + np.array([0, 0, 0, 0, 0, 0, 0, 0, -np.pi/2, 0, 0, 0])
 
     #UP to release droxel
-    setpoint8 = make_wp(setpoint7, [0,0,1], 0.65)
+    setpoint8 = make_wp(setpoint6, [0,0,1], 0.65)
 
     #BACK to setpoint2 (above droxel)
     setpoint9 = setpoint2
@@ -143,6 +144,8 @@ def usr(flyer):
     time_of_last_switch = 0
 
     stepped = False
+    place_attempt_max = 3
+    place_attempt_curr = 0
 
     while True:
 
@@ -167,7 +170,8 @@ def usr(flyer):
             if np.all(current_waypoint == setpoint):
                 current_waypoint = np.copy(setpoint2)
                 flyer.waypoint(current_waypoint)
-                time_at_each_setpoint = 40 #seconds
+                # time_at_each_setpoint = 10 #seconds
+                time_at_each_setpoint = 3 #seconds
 
                 time_of_last_switch = current_time
 
@@ -211,82 +215,89 @@ def usr(flyer):
             elif np.all(current_waypoint == setpoint5):
                 current_waypoint = np.copy(setpoint6_1)
                 flyer.waypoint(current_waypoint)
-                time_at_each_setpoint = 1  # Shorter time for yaw twist
+                time_at_each_setpoint = 1  
 
                 time_of_last_switch = current_time
             elif np.all(current_waypoint == setpoint6_1):
                 current_waypoint = np.copy(setpoint6_2)
                 flyer.waypoint(current_waypoint)
-                time_at_each_setpoint = 1  # Shorter time for yaw twist
+                time_at_each_setpoint = 1  
 
                 time_of_last_switch = current_time
             elif np.all(current_waypoint == setpoint6_2):
                 current_waypoint = np.copy(setpoint6_3)
-                time_at_each_setpoint = 1  # Shorter time for yaw twist
+                time_at_each_setpoint = 1  
 
                 flyer.waypoint(current_waypoint)
                 time_of_last_switch = current_time
             elif np.all(current_waypoint == setpoint6_3):
                 current_waypoint = np.copy(setpoint6_4)
                 flyer.waypoint(current_waypoint)
-                time_at_each_setpoint = 1  # Shorter time for yaw twist
+                time_at_each_setpoint = 1  
 
                 time_of_last_switch = current_time
             elif np.all(current_waypoint == setpoint6_4):
                 current_waypoint = np.copy(setpoint6_5)
                 flyer.waypoint(current_waypoint)
-                time_at_each_setpoint = 1  # Shorter time for yaw twist
+                time_at_each_setpoint = 1  
 
                 time_of_last_switch = current_time
             elif np.all(current_waypoint == setpoint6_5):
                 current_waypoint = np.copy(setpoint6_6)
                 flyer.waypoint(current_waypoint)
-                time_at_each_setpoint = 1  # Shorter time for yaw twist
+                time_at_each_setpoint = 1  
 
                 time_of_last_switch = current_time
             
             elif np.all(current_waypoint == setpoint6_6):
                 current_waypoint = np.copy(setpoint6_7)
                 flyer.waypoint(current_waypoint)
-                time_at_each_setpoint = 1  # Shorter time for yaw twist
+                time_at_each_setpoint = 1  
 
                 time_of_last_switch = current_time
             
             elif np.all(current_waypoint == setpoint6_7):
                 current_waypoint = np.copy(setpoint6_8)
                 flyer.waypoint(current_waypoint)
-                time_at_each_setpoint = 1  # Shorter time for yaw twist
+                time_at_each_setpoint = 1  
 
                 time_of_last_switch = current_time
             
             elif np.all(current_waypoint == setpoint6_8):
                 current_waypoint = np.copy(setpoint6_9)
                 flyer.waypoint(current_waypoint)
-                time_at_each_setpoint = 1  # Shorter time for yaw twist
+                time_at_each_setpoint = 1  
 
                 time_of_last_switch = current_time
             
             elif np.all(current_waypoint == setpoint6_9):
+                current_waypoint = np.copy(setpoint6_10)
+                flyer.waypoint(current_waypoint)
+                time_at_each_setpoint = 1  
+
+                time_of_last_switch = current_time
+            
+            elif np.all(current_waypoint == setpoint6_10):
                 current_waypoint = np.copy(setpoint6)
                 flyer.waypoint(current_waypoint)
-                time_at_each_setpoint = 1  # Shorter time for yaw twist
+                time_at_each_setpoint = 10  
 
                 time_of_last_switch = current_time
 
             elif np.all(current_waypoint == setpoint6):
-                current_waypoint = np.copy(setpoint7)
-                flyer.waypoint(current_waypoint)
-                time_at_each_setpoint = 0.5  # Shorter time for yaw twist
+            #     current_waypoint = np.copy(setpoint7)
+            #     flyer.waypoint(current_waypoint)
+            #     time_at_each_setpoint = 0.5  # Shorter time for yaw twist
 
-                time_of_last_switch = current_time
-            elif np.all(current_waypoint == setpoint7):
+            #     time_of_last_switch = current_time
+            # elif np.all(current_waypoint == setpoint7):
                 current_waypoint = np.copy(setpoint8)
                 flyer.waypoint(current_waypoint)
                 time_of_last_switch = current_time
             elif np.all(current_waypoint == setpoint8):
                 current_waypoint = np.copy(setpoint9)
                 flyer.waypoint(current_waypoint)
-                time_at_each_setpoint = 5  # Shorter time for yaw twist
+                time_at_each_setpoint = 5  
 
                 time_of_last_switch = current_time
 
