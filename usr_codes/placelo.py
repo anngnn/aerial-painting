@@ -124,7 +124,8 @@ def usr(flyer):
 
 
     #TWIST YAW to release droxel(shorter time at this setpoint)
-    setpoint7 = setpoint6 + np.array([0, 0, 0, 0, 0, 0, 0, 0, 3*np.pi/4, 0, 0, 0])  # ~270 degrees (positive direction)
+    # setpoint7 = setpoint6 + np.array([0, 0, 0, 0, 0, 0, 0, 0, -3*np.pi/4, 0, 0, 0])  # ~270 degrees
+    setpoint7 = setpoint6 + np.array([0, 0, 0, 0, 0, 0, 0, 0, np.pi + 0.01, 0, 0, 0])  # ~180.6 degrees
 
     #UP to release droxel
     setpoint8_1 = make_wp(setpoint7, [0,0,1], 0.02)
@@ -299,7 +300,7 @@ def usr(flyer):
             elif np.all(current_waypoint == setpoint6):
                 current_waypoint = np.copy(setpoint7)
                 flyer.waypoint(current_waypoint)
-                time_at_each_setpoint = 2  # Shorter time for yaw twist
+                time_at_each_setpoint = 0.7  # Shorter time for yaw twist
 
                 time_of_last_switch = current_time
 
