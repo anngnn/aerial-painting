@@ -101,7 +101,7 @@ def usr(flyer):
     setpoint3 = make_wp(setpoint3_10, [0,0,1], -0.05)
 
     #UP after pick
-    setpoint4 = make_wp(setpoint3, [0,0,1], 0.55)
+    setpoint4 = make_wp(setpoint3, [0,0,1], 0.56) # higher than setpoint2 so it doesn't get confuse and go down again
 
     #ABOVE droxel placement
     setpoint5 = make_wp(setpoint4, [0,1,0], 0.5)
@@ -185,48 +185,60 @@ def usr(flyer):
             elif np.all(current_waypoint == setpoint2):
                 current_waypoint = np.copy(setpoint3_1)
                 flyer.waypoint(current_waypoint)
+                time_at_each_setpoint = 1  
+
                 time_of_last_switch = current_time
             elif np.all(current_waypoint == setpoint3_1):
                 current_waypoint = np.copy(setpoint3_2)
                 flyer.waypoint(current_waypoint)
+                time_at_each_setpoint = 1 
                 time_of_last_switch = current_time
             elif np.all(current_waypoint == setpoint3_2):
                 current_waypoint = np.copy(setpoint3_3)
                 flyer.waypoint(current_waypoint)
+                time_at_each_setpoint = 1 
                 time_of_last_switch = current_time
             elif np.all(current_waypoint == setpoint3_3):
                 current_waypoint = np.copy(setpoint3_4)
                 flyer.waypoint(current_waypoint)
+                time_at_each_setpoint = 1 
                 time_of_last_switch = current_time
             elif np.all(current_waypoint == setpoint3_4):
                 current_waypoint = np.copy(setpoint3_5)
                 flyer.waypoint(current_waypoint)
+                time_at_each_setpoint = 1 
                 time_of_last_switch = current_time
             elif np.all(current_waypoint == setpoint3_5):
 
                 current_waypoint = np.copy(setpoint3_6)
                 flyer.waypoint(current_waypoint)
+                time_at_each_setpoint = 1 
                 time_of_last_switch = current_time
             elif np.all(current_waypoint == setpoint3_6):
                 current_waypoint = np.copy(setpoint3_7)
                 flyer.waypoint(current_waypoint)
+                time_at_each_setpoint = 1 
                 time_of_last_switch = current_time
             elif np.all(current_waypoint == setpoint3_7):
                 current_waypoint = np.copy(setpoint3_8)
                 flyer.waypoint(current_waypoint)
+                time_at_each_setpoint = 1 
                 time_of_last_switch = current_time
             elif np.all(current_waypoint == setpoint3_8):
                 current_waypoint = np.copy(setpoint3_9)
                 flyer.waypoint(current_waypoint)
+                time_at_each_setpoint = 1 
                 time_of_last_switch = current_time
             elif np.all(current_waypoint == setpoint3_9):
                 current_waypoint = np.copy(setpoint3_10)
                 flyer.waypoint(current_waypoint)
+                time_at_each_setpoint = 1 
                 time_of_last_switch = current_time
             elif np.all(current_waypoint == setpoint3_10):
 
                 current_waypoint = np.copy(setpoint3)
                 flyer.waypoint(current_waypoint)
+                time_at_each_setpoint = 1 
                 time_of_last_switch = current_time
 
 
@@ -309,7 +321,7 @@ def usr(flyer):
             elif np.all(current_waypoint == setpoint6_10):
                 current_waypoint = np.copy(setpoint6)
                 flyer.waypoint(current_waypoint)
-                time_at_each_setpoint = 10  
+                time_at_each_setpoint = 5   # Stay down for a while before twisting  
 
                 time_of_last_switch = current_time
 
