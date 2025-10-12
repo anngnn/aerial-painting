@@ -79,7 +79,7 @@ def usr(flyer):
     
     #set the first waypoint
     setpoint = first_pos
-    setpoint[2] = setpoint[2] + 0.5 #+ (0.15*(np.random.rand()-0.5)) #meters
+    setpoint[2] = setpoint[2] + 0.5
     setpoint[3:] = 0
     flyer.waypoint(setpoint)
     current_waypoint = np.copy(setpoint)
@@ -156,8 +156,6 @@ def usr(flyer):
     time_of_last_switch = 0
 
     stepped = False
-    place_attempt_max = 3
-    place_attempt_curr = 0
 
     while True:
 
