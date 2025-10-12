@@ -61,7 +61,7 @@ def usr(flyer):
 
     flyer.log(['user code started'])
 
-    #get the first position
+    # get the first position
     while True:
         state = flyer.state()
         if len(state) > 1:
@@ -77,17 +77,17 @@ def usr(flyer):
         setpoint = base_setpoint + np.array([vec[0], vec[1], vec[2], 0, 0, 0, 0, 0, 0, 0, 0, 0])
         return setpoint
     
-    #set the first waypoint
+    # set the first waypoint
     setpoint = first_pos
     setpoint[2] = setpoint[2] + 0.5 #+ (0.15*(np.random.rand()-0.5)) #meters
     setpoint[3:] = 0
     flyer.waypoint(setpoint)
     current_waypoint = np.copy(setpoint)
 
-    #ABOVE droxel
+    # ABOVE droxel
     setpoint2 = make_wp(setpoint, [1,0,0], 0.5)
 
-    #DOWN to pick
+    # DOWN to pick
     # setpoint3_1 = make_wp(setpoint2, [0,0,1], -0.1)
     # setpoint3_2 = make_wp(setpoint3_1, [0,0,1], -0.1)
     # setpoint3_3 = make_wp(setpoint3_2, [0,0,1], -0.1)
@@ -95,14 +95,14 @@ def usr(flyer):
     # setpoint3_5 = make_wp(setpoint3_4, [0,0,1], -0.1)
     # setpoint3 = make_wp(setpoint3_5, [0,0,1], -0.05)
 
-    #UP after pick
+    # UP after pick
     # setpoint4 = make_wp(setpoint3, [0,0,1], 0.55)
 
-    #ABOVE droxel placement
+    # ABOVE droxel placement
     # setpoint5 = make_wp(setpoint4, [0,1,0], 0.5)
     setpoint5 = make_wp(setpoint2, [0,1,0], 0.5)
 
-    #DOWN to place
+    # DOWN to place
     # setpoint6_1 = make_wp(setpoint5, [0,0,1], -0.1)
     # setpoint6_2 = make_wp(setpoint6_1, [0,0,1], -0.1)
     # setpoint6_3 = make_wp(setpoint6_2, [0,0,1], -0.1)
@@ -123,18 +123,18 @@ def usr(flyer):
     setpoint6 = make_wp(setpoint6_10, [0,0,1], -0.05)
 
 
-    #TWIST YAW to release droxel
+    # TWIST YAW to release droxel
     # setpoint7 = setpoint6 + np.array([0, 0, 0, 0, 0, 0, 0, 0, -np.pi/2, 0, 0, 0])
 
-    #UP to release droxel
+    # UP to release droxel
     setpoint8 = make_wp(setpoint6, [0,0,1], 0.65)
 
-    #BACK to setpoint2 (above droxel)
+    # BACK to setpoint2 (above droxel)
     setpoint9 = setpoint2
     setpoint9 = setpoint2
     setpoint9 = make_wp(setpoint9, [1,1,0], -0.5)
 
-    #arm the flyer
+    # arm the flyer
     flyer.arm()
     flyer.run_controller()
 
@@ -153,7 +153,7 @@ def usr(flyer):
 
         flyer.delay()
 
-        #log our state
+        # log our state
         state = flyer.state()
         if len(state) > 1:
             rounded_time = np.round(time.time() - START, 3)

@@ -54,8 +54,8 @@ import struct
 UP, RIGHT, DOWN, UP, RIGHT2, DOWN, TWIST_YAW, UP
 '''
 def usr(flyer):
-    list_waypoints = []
-    time_at_waypoint = []  # Time to spend at each waypoint
+    list_waypoints = []     # list of all waypoints
+    time_at_waypoint = []   # time to spend at each waypoint
 
     START = time.time()
 
@@ -64,7 +64,7 @@ def usr(flyer):
 
     flyer.log(['user code started'])
 
-    #get the first position
+    # get the first position
     while True:
         state = flyer.state()
         if len(state) > 1:
@@ -92,7 +92,7 @@ def usr(flyer):
             prev_setpt = curr_setpoint
             remaining_dist -= step
     
-    #set the first waypoint
+    # set the first waypoint
     setpoint = first_pos
     setpoint[2] = setpoint[2] + 0.5
     setpoint[3:] = 0
@@ -103,53 +103,53 @@ def usr(flyer):
     time_at_waypoint.append(3)
 
 
-    #ABOVE droxel
+    # ABOVE droxel
     setpoint2 = make_wp(setpoint, [1,0,0], 0.5)
     list_waypoints.append(setpoint2)
     time_at_waypoint.append(3)
 
-    #DOWN to pick
+    # DOWN to pick
     idx_before_pick = len(list_waypoints)
     make_gradual_wp(setpoint2, [0,0,1], 0.55, 0.05, going_down=True)
     for _ in range (len(list_waypoints) - idx_before_pick):
         time_at_waypoint.append(1)
     pick_waypoint = list_waypoints[-1]
 
-    #UP after pick
+    # UP after pick
     setpoint4 = make_wp(pick_waypoint, [0,0,1], 0.55)
     list_waypoints.append(setpoint4)
     time_at_waypoint.append(3)
 
-    #ABOVE droxel placement
+    # ABOVE droxel placement
     setpoint5 = make_wp(setpoint4, [0,1,0], 0.5)
     list_waypoints.append(setpoint5)
     time_at_waypoint.append(3)
 
-    #DOWN to place
+    # DOWN to place
     idx_before_place = len(list_waypoints)
     make_gradual_wp(setpoint5, [0,0,1], 0.54, 0.05, going_down=True)
     for _ in range(len(list_waypoints) - idx_before_place):
         time_at_waypoint.append(1)
     place_waypoint = list_waypoints[-1]
 
-    #TWIST YAW to release droxel
+    # TWIST YAW to release droxel
     setpoint7 = place_waypoint + np.array([0, 0, 0, 0, 0, 0, 0, 0, -3*np.pi/4, 0, 0, 0])
     list_waypoints.append(setpoint7)
     time_at_waypoint.append(1.5)
 
-    #UP to release droxel
+    # UP to release droxel
     idx_before_release = len(list_waypoints)
     make_gradual_wp(setpoint7, [0, 0, 1], 0.56, 0.05, going_down=False)
     for _ in range(len(list_waypoints) - idx_before_release):
         time_at_waypoint.append(1)
 
 
-    #BACK to setpoint2 (above droxel)
+    # BACK to setpoint2 (above droxel)
     setpoint9 = make_wp(setpoint2, [1, 1, 0], -0.5)
     list_waypoints.append(setpoint9)
     time_at_waypoint.append(5)
 
-    #arm the flyer
+    # arm the flyer
     flyer.arm()
     flyer.run_controller()
 
@@ -162,11 +162,9 @@ def usr(flyer):
 
     while True:
 
-        # print('looping')
-
         flyer.delay()
 
-        #log our state
+        # log our state
         state = flyer.state()
         if len(state) > 1:
             rounded_time = np.round(time.time() - START, 3)
