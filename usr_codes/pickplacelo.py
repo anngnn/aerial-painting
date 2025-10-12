@@ -120,7 +120,7 @@ def usr(flyer):
     setpoint6 = make_wp(setpoint6_10, [0,0,1], -0.03)
 
 
-    #TWIST YAW to release droxel(shorter time at this setpoint)
+    #TWIST YAW to release droxel
     setpoint7 = setpoint6 + np.array([0, 0, 0, 0, 0, 0, 0, 0, -3*np.pi/4, 0, 0, 0])
 
     #UP to release droxel
