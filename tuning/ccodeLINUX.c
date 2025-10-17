@@ -1296,19 +1296,19 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
 
           
           // NEW** START Feedback parts
-          float fb_pitch_cmd = x_comp*(Ksx1_P_x*error_x - Ksx2_D_x*dx + KI_x*integral_x)
+          float pid_fb_pitch_cmd = x_comp*(Ksx1_P_x*error_x - Ksx2_D_x*dx + KI_x*integral_x)
                             + y_comp*(-1)*(Ksy1_P_y*error_y - Ksy2_D_y*dy + KI_y*integral_y);
 
-          float fb_roll_cmd  = y_comp*(Ksx1_P_x*error_x - Ksx2_D_x*dx + KI_x*integral_x)
+          float pid_fb_roll_cmd  = y_comp*(Ksx1_P_x*error_x - Ksx2_D_x*dx + KI_x*integral_x)
                             + x_comp*(Ksy1_P_y*error_y - Ksy2_D_y*dy + KI_y*integral_y);
 
-          // --- Lateral feedforward (separate x/y gains, mapped via yaw) ---
+          // --- Lateral feedforward (separate x/y gains, mapped via yaw)
           float ff_pitch_cmd = x_comp*(KVFF_X * vdesired_x) + y_comp*(-KVFF_Y * vdesired_y);
           float ff_roll_cmd  = y_comp*(KVFF_X * vdesired_x) + x_comp*( KVFF_Y * vdesired_y);
 
           // Sum FB + FF into desired angles (radians, pre angle_scaler)
-          float desired_pitch_angle = fb_pitch_cmd + ff_pitch_cmd;
-          float desired_roll_angle  = fb_roll_cmd  + ff_roll_cmd;
+          float desired_pitch_angle = pid_fb_pitch_cmd + ff_pitch_cmd;
+          float desired_roll_angle  = pid_fb_roll_cmd  + ff_roll_cmd;
 
           // first-order smoothing
           filtered_desired_pitch = (1.0f - alpha)*filtered_desired_pitch + alpha*desired_pitch_angle;
