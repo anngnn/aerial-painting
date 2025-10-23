@@ -508,7 +508,7 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
 
   // NEW** -- Feedforward gains 
   float KVFF_X = 0.0;  // x-velocity → tilt [rad per (m/s)] 
-  float KVFF_Y = 0.4;  // y-velocity → tilt [rad per (m/s)]
+  float KVFF_Y = 10.0;  // y-velocity → tilt [rad per (m/s)]
 
   //  Setpoint history for FF derivatives ---
   float prev_desiredx = 0.0, prev_desiredy = 0.0;
@@ -1303,7 +1303,7 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
                             + x_comp*(Ksy1_P_y*error_y - Ksy2_D_y*dy + KI_y*integral_y);
 
           // --- Lateral feedforward (separate x/y gains, mapped via yaw)
-          float ff_pitch_cmd = x_comp*(KVFF_X * vdesired_x) + y_comp*(-KVFF_Y * vdesired_y);
+          float ff_pitch_cmd = x_comp*(KVFF_X * vdesired_x) + y_comp*(-1)*(KVFF_Y * vdesired_y);
           float ff_roll_cmd  = y_comp*(KVFF_X * vdesired_x) + x_comp*( KVFF_Y * vdesired_y);
 
           // Sum FB + FF into desired angles (radians, pre angle_scaler)
@@ -1315,7 +1315,7 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
           filtered_desired_roll  = (1.0f - alpha)*filtered_desired_roll  + alpha*desired_roll_angle;
           // NEW** END
 
-          float angle_scaler = 260;
+          float angle_scaler = 290;
 
 
 
