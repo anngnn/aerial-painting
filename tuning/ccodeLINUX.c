@@ -519,8 +519,24 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
   float filtered_desired_roll = 0.0;
   float alpha = 1.0; //closer to 1 -> more weight on NEW data
 
+  // NEW**
+  // Initialize gains for POSITION controller
+  float Kp_pos_x = 2.0;
+  float Ki_pos_x = 0;
+  float Kd_pos_x = 0;
+  float P_term_pos_x = 0.0; 
+  float I_term_pos_x = 0.0;
+  float D_term_pos_x = 0.0;
+  float desired_velocity_x = 0.0;
+  float error_pos_x = 0.0;
+  float error_pos_y = 0.0;
+  float error_pos_z = 0.0;
   
+  // Initialize gains for VELOCITY controller
+  
+  // NEW** END
 
+  
   //Integral terms
   float integral_x = 0.0, integral_y = 0.0, integral_z = 0.0;
   float KI_z = 1.25;
@@ -634,7 +650,7 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
   // Infinite loop to receive messages and run the controller - LINUX
   while (1) {
     clock_gettime(CLOCK_MONOTONIC, &loop_start_time);
-
+    
     data_found = FALSE;
 
     // printf("loop start.\r\n");
@@ -685,10 +701,15 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
       fptr = fopen(filename, "w");
       //WRITE HERE
       fprintf(fptr, "New control log.\n");
-      fprintf(fptr, "Raw c time,robot_local_time,global time,data size,frequency,received_sequence_number, latency,");
+      fprintf(fptr, "Raw c time,robot_local_time,global time,data size,frequency,received_sequence_number,latency,");
       fprintf(fptr, "x,y,z,dx,dy,dz,pitch,roll,yaw,dpitch,droll,dyaw,");
       fprintf(fptr, "setx,sety,setz,u_roll,u_pitch,u_z,u_yaw,");
-      fprintf(fptr, "int_x,int_y,int_z,count_delta,voltage,error\n");
+
+      // NEW**
+      fprintf(fptr, "int_x,int_y,int_z,count_delta,voltage,error,");
+      fprintf(fptr, "P_term_pos_x,I_term_pos_x,D_term_pos_x,desired_velocity_x,");
+      fprintf(fptr, "error_pos_x,error_pos_y,error_pos_z\n"); 
+
       clock_gettime(CLOCK_MONOTONIC, &local_time_of_user_code_start);
       fflush(fptr);
       fprintf(clog_fptr, "KICKED OFF A NEW FILE.");
@@ -1153,7 +1174,7 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
 
         //double check we didn't just set all of our desired states to zero. (sometimes theres an error on the python side)
         //IF we did, revert to our last desiredx, etc.
-        if (desiredx == 0 && desiredy == 0 && desiredy == 0 && desiredw == 0){
+        if (desiredx == 0 && desiredy == 0 && desiredz == 0 && desiredw == 0){
           desiredx = lastdesiredx;
           desiredy = lastdesiredy;
           desiredz = lastdesiredz;
@@ -1244,28 +1265,34 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
 
           //no errors. Go ahead and run the controller.
           //first, get the percentage of each that should be added based on yaw
-          double x_comp = cos((double)yaw);
-          double y_comp = sin((double)yaw);
-
+          // double x_comp = cos((double)yaw);
+          // double y_comp = sin((double)yaw);
+          double x_comp = 1;
+          double y_comp = 0;
 
           // Get the error in x, y, z
-          float error_x = desiredx - x;
-          float error_y = desiredy - y;
-          float error_z = desiredz - z;
+          error_pos_x = desiredx - x; // NEW**
+          error_pos_y = desiredy - y;
+          error_pos_z = desiredz - z;
 
           //HYBRID - set up the integral commands (to compensate wind, dying batteries)
-          // integral_x += KI_x*(error_x);
-          // integral_y += KI_y*(error_y);
-          integral_x += error_x;
-          integral_y += error_y;
-          integral_z += KI_z*(error_z);
+          // integral_x += KI_x*(error_pos_x);
+          // integral_y += KI_y*(error_pos_y);
+          integral_x += error_pos_x; // NEW**
+          integral_y += error_pos_y;
+          integral_z += KI_z*(error_pos_z);
 
+          // NEW**
+          P_term_pos_x = Kp_pos_x*error_pos_x ; 
+          I_term_pos_x = Ki_pos_x*integral_x;
+          D_term_pos_x = -Kd_pos_x*dx;       // D term should always oppose velocity to provide damping
 
+          desired_velocity_x = P_term_pos_x + I_term_pos_x + D_term_pos_x;
+        
+          // float desired_pitch_angle = x_comp*(Ksx1_P_x*error_pos_x - Ksx2_D_x*dx + KI_x*integral_x) + y_comp*(-1)*(Ksy1_P_y*error_pos_y - Ksy2_D_y*dy + KI_y*integral_y);
+          float desired_roll_angle = y_comp*(Ksx1_P_x*error_pos_x - Ksx2_D_x*dx + KI_x*integral_x) + x_comp*(Ksy1_P_y*error_pos_y - Ksy2_D_y*dy + KI_y*integral_y);
 
-          float desired_pitch_angle = x_comp*(Ksx1_P_x*error_x - Ksx2_D_x*dx + KI_x*integral_x) + y_comp*(-1)*(Ksy1_P_y*error_y - Ksy2_D_y*dy + KI_y*integral_y);
-          float desired_roll_angle = y_comp*(Ksx1_P_x*error_x - Ksx2_D_x*dx + KI_x*integral_x) + x_comp*(Ksy1_P_y*error_y - Ksy2_D_y*dy + KI_y*integral_y);
-
-          filtered_desired_pitch = (1-alpha)*filtered_desired_pitch + alpha*desired_pitch_angle;
+          // filtered_desired_pitch = (1-alpha)*filtered_desired_pitch + alpha*desired_pitch_angle;
           filtered_desired_roll = (1-alpha)*filtered_desired_roll + alpha*desired_roll_angle;
 
           float angle_scaler = 100;
@@ -1274,9 +1301,9 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
 
           //THis is essentially matrix multiplication of the error vector times the K vecor, just written out ahead of time
           //with the values that would compute to zero as zero, assuming a desired 0 velocity and 0 roll, pitch
-          // ux = x_comp*(Ksx1_P_x*(error_x) - Ksx2_D_x*(dx) - Ksx3_P_pitch*(pitch) - Ksx4_D_pitch*(dpitch)) + y_comp*(-1)*(Ksy1_P_y*(error_y) - Ksy2_D_y*(dy) - Ksy3_P_roll*(roll) - Ksy4_D_roll*(droll));
-          // uy = y_comp*(Ksx1_P_x*(error_x) - Ksx2_D_x*(dx) - Ksx3_P_pitch*(pitch) - Ksx4_D_pitch*(dpitch)) + x_comp*(Ksy1_P_y*(error_y) - Ksy2_D_y*(dy) - Ksy3_P_roll*(roll) - Ksy4_D_roll*(droll));
-          uz = Ksz1*(error_z) - Ksz2*(dz);
+          // ux = x_comp*(Ksx1_P_x*(error_pos_x) - Ksx2_D_x*(dx) - Ksx3_P_pitch*(pitch) - Ksx4_D_pitch*(dpitch)) + y_comp*(-1)*(Ksy1_P_y*(error_pos_y) - Ksy2_D_y*(dy) - Ksy3_P_roll*(roll) - Ksy4_D_roll*(droll));
+          // uy = y_comp*(Ksx1_P_x*(error_pos_x) - Ksx2_D_x*(dx) - Ksx3_P_pitch*(pitch) - Ksx4_D_pitch*(dpitch)) + x_comp*(Ksy1_P_y*(error_pos_y) - Ksy2_D_y*(dy) - Ksy3_P_roll*(roll) - Ksy4_D_roll*(droll));
+          uz = Ksz1*(error_pos_z) - Ksz2*(dz);
           uw = Ksw1*(desiredw - yaw) - Ksw2*(dyaw);
 
           //YAW SEEMS TO BE REVERSED FOR SOME REASON.
@@ -1479,7 +1506,9 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
           fprintf(fptr, "%d.%.9ld,%d.%.9ld,%f,%d,%f,%d,%0.4f,", (int)elapsed_time.tv_sec, elapsed_time.tv_nsec, (int)elapsed_user_code_time.tv_sec, elapsed_user_code_time.tv_nsec, received_time - *user_code_start_time, n, frequency, received_sequence_number, latency);
           fprintf(fptr, "%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,", x, y, z, dx, dy, dz, pitch, roll, yaw, dpitch, droll, dyaw);
           fprintf(fptr, "%0.3f,%0.3f,%0.3f,%d,%d,%d,%d,", desiredx, desiredy, desiredz,roll_u,pitch_u,z_u,yaw_u);
-          fprintf(fptr, "%0.3f,%0.3f,%0.3f,%d,%d,%d\n", integral_x, integral_y, integral_z, count_delta, *shared_battery_voltage, 0);
+          fprintf(fptr, "%0.3f,%0.3f,%0.3f,%d,%d,%d,", integral_x, integral_y, integral_z, count_delta, *shared_battery_voltage, 0);
+          fprintf(fptr, "%0.3f,%0.3f,%0.3f,%0.3f,", P_term_pos_x, I_term_pos_x, D_term_pos_x, desired_velocity_x);
+          fprintf(fptr, "%0.3f,%0.3f,%0.3f\n", error_pos_x, error_pos_y, error_pos_z); 
           // for (int i=0; i < 12; i++){
           //   fprintf(fptr, "%0.3f,", eststate[i]);
           // }
@@ -1496,12 +1525,22 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
         roll_u = 1500; pitch_u = 1500; z_u = 900; yaw_u = 1500;
         integral_x = 0; integral_y = 0; integral_z = 0;
 
+        // NEW**
+        // Position PID Controller x
+        P_term_pos_x = 0.0;
+        I_term_pos_x = 0.0;
+        D_term_pos_x = 0.0;
+        desired_velocity_x = 0.0;
+
         if (write_to_file){
                       //WRITE HERE
           fprintf(fptr, "%d.%.9ld,%d.%.9ld,%f,%d,%f,%d,%0.4f,", (int)elapsed_time.tv_sec, elapsed_time.tv_nsec, (int)elapsed_user_code_time.tv_sec, elapsed_user_code_time.tv_nsec, received_time - *user_code_start_time, n, frequency, received_sequence_number, latency);
           fprintf(fptr, "%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,", x, y, z, dx, dy, dz, pitch, roll, yaw, dpitch, droll, dyaw);
           fprintf(fptr, "%0.3f,%0.3f,%0.3f,%d,%d,%d,%d,", desiredx, desiredy, desiredz,roll_u,pitch_u,z_u,yaw_u);
-          fprintf(fptr, "%0.3f,%0.3f,%0.3f,%d,%d,%d\n", integral_x, integral_y, integral_z, count_delta, *shared_battery_voltage, 1);
+          fprintf(fptr, "%0.3f,%0.3f,%0.3f,%d,%d,%d,", integral_x, integral_y, integral_z, count_delta, *shared_battery_voltage, 1);
+          fprintf(fptr, "%0.3f,%0.3f,%0.3f,%0.3f,", P_term_pos_x, I_term_pos_x, D_term_pos_x, desired_velocity_x);
+          fprintf(fptr, "%0.3f,%0.3f,%0.3f\n", error_pos_x, error_pos_y, error_pos_z);
+
           // for (int i=0; i < 12; i++){
           //   fprintf(fptr, "%0.3f,", eststate[i]);
           // }
@@ -1530,7 +1569,9 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
         fprintf(fptr, "%d.%.9ld,%d.%.9ld,%f,%d,%f,%d,%d,", (int)elapsed_time.tv_sec, elapsed_time.tv_nsec, (int)elapsed_user_code_time.tv_sec, elapsed_user_code_time.tv_nsec, received_time - *user_code_start_time, 0, frequency, 0, 0);
         fprintf(fptr, "%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,", x, y, z, dx, dy, dz, pitch, roll, yaw, dpitch, droll, dyaw);
         fprintf(fptr, "%0.3f,%0.3f,%0.3f,%d,%d,%d,%d,", 0.0, 0.0, 0.0,roll_u,pitch_u,z_u,yaw_u);
-        fprintf(fptr, "%0.3f,%0.3f,%0.3f,%d,%d,%d\n", 0.0, 0.0, 0.0, 0, *shared_battery_voltage, 2);
+        fprintf(fptr, "%0.3f,%0.3f,%0.3f,%d,%d,%d,", 0.0, 0.0, 0.0, 0, *shared_battery_voltage, 2);
+        fprintf(fptr, "%0.3f,%0.3f,%0.3f,%0.3f,", P_term_pos_x, I_term_pos_x, D_term_pos_x, desired_velocity_x);
+        fprintf(fptr, "%0.3f,%0.3f,%0.3f\n", error_pos_x, error_pos_y, error_pos_z);
         // for (int i=0; i < 12; i++){
         //   fprintf(fptr, "%0.3f,", eststate[i]);
         // }
