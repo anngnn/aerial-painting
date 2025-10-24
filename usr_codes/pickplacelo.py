@@ -127,7 +127,7 @@ def usr(flyer):
 
     # DOWN to place
     idx_before_place = len(list_waypoints)
-    make_gradual_wp(setpoint5, [0,0,1], 0.538, 0.05, going_down=True)
+    make_gradual_wp(setpoint5, [0,0,1], 0.54, 0.05, going_down=True)
     for _ in range(len(list_waypoints) - idx_before_place):
         time_at_waypoint.append(1)
     place_waypoint = list_waypoints[-1]

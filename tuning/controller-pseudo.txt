@@ -1,0 +1,89 @@
+// Initialize gains
+Kp_pos_x, Ki_pos_x, Kd_pos_x   // outer loop: position -> velocity setpoint
+Kp_pos_y, Ki_pos_y, Kd_pos_y
+Kp_pos_z, Ki_pos_z, Kd_pos_z
+
+Kp_vel_x, Ki_vel_x, Kd_vel_x   // inner loop: velocity -> roll, pitch
+Kp_vel_y, Ki_vel_y, Kd_vel_y
+Kp_vel_z, Ki_vel_z, Kd_vel_z
+
+// Time tracking
+previous_time = get_current_time()
+
+// Error tracking position
+previous_error_pos_x = 0
+integral_sum_pos_x = 0
+
+previous_error_pos_y = 0
+integral_sum_pos_y = 0
+
+previous_error_pos_z = 0
+integral_sum_pos_z = 0
+
+// Error tracking velocity
+previous_error_vel_x = 0
+integral_sum_vel_x = 0
+
+previous_error_vel_y = 0
+integral_sum_vel_y = 0
+
+previous_error_vel_z = 0
+integral_sum_vel_z = 0
+
+def calculate_pid_output(setpoint, current_value, Kp, Ki, Kd, prev_error_ref, integral_sum_ref, dt):
+    error = setpoint - current_value
+    
+    // Proportional term
+    P_term = Kp * error
+    
+    // Integral term
+    integral_sum_ref += (error * dt)
+    I_term = Ki * integral_sum_ref
+    
+    // Derivative term
+    D_term = Kd * ((error - prev_error_ref) / dt)
+    
+    // Calculate total output
+    output = P_term + I_term + D_term
+    
+    // Update previous error
+    prev_error_ref = error
+    
+    return output
+
+// Main control loop
+while True:
+    // UPDATE dt - calculate actual time elapsed
+    current_time = get_current_time()
+    dt = current_time - previous_time
+    previous_time = current_time
+
+    read current positions x, y, z
+    read current velocities x, y, z
+
+    // POSITION CONTROLLER (outputs desired velocities)
+    calculate position errors for x, y, z
+    update previous_error and integral_sum for positions x, y, z
+    call calculate_pid_output for positions x, y, z
+        get desired velocities for x, y, z
+
+    // VELOCITY CONTROLLER (outputs desired roll and pitch signals)
+    calculate velocity errors for x, y, z based on desired velocities
+    update previous_error and integral_sum for velocities x, y, z
+    call calculate_pid_output for velocities x, y, z
+        get desired roll and pitch angles
+    filter the desired angles and scale them for use in thrust commands
+    
+
+
+
+    
+
+
+
+    
+
+
+
+
+

@@ -506,17 +506,6 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
   // float Ksw1 = shared_KS[10]; //1.414214;
   // float Ksw2 = shared_KS[11]; //0.015033;
 
-  // NEW** -- Feedforward gains 
-  float KVFF_X = 0.0;  // x-velocity → tilt [rad per (m/s)] 
-  float KVFF_Y = 10.0;  // y-velocity → tilt [rad per (m/s)]
-
-  //  Setpoint history for FF derivatives ---
-  float prev_desiredx = 0.0, prev_desiredy = 0.0;
-  float vdesired_x = 0.0, vdesired_y = 0.0;   // desired velocities
-  float last_setpoint_time = 0.0;     // time of last setpoint sample (uses received_time)
-
-  // NEW** -- END
-
   float Ksx1_P_x = 1.885;//3.82, i term of 0.001
   float Ksx2_D_x = 1.885; //2.547266;
   float Ksy1_P_y = -1.885;//3.82, i term of 0.001
@@ -536,7 +525,7 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
   float integral_x = 0.0, integral_y = 0.0, integral_z = 0.0;
   float KI_z = 1.25;
   float KI_x = 0.0010;
-  float KI_y = -0.0007;
+  float KI_y = -0.0010;
   uint16_t u_hover = 250;
 
   //Commands
@@ -958,13 +947,6 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
           eststate[6] = pitch; eststate[7] = roll; eststate[8] = yaw;
           eststate[9] = dpitch; eststate[10] = droll; eststate[11] = dyaw;
 
-          // NEW** --- FF history init ---
-          prev_desiredx = desiredx; 
-          prev_desiredy = desiredy; 
-          last_setpoint_time = received_time;
-          vdesired_x = vdesired_y = 0.0;
-          // NEW** END
-
           filter_initialized = TRUE;
           // for (int boob=0; boob < 12; boob ++){
           //   printf("%f, ", eststate[boob]);
@@ -1171,7 +1153,7 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
 
         //double check we didn't just set all of our desired states to zero. (sometimes theres an error on the python side)
         //IF we did, revert to our last desiredx, etc.
-        if (desiredx == 0 && desiredy == 0 && desiredz == 0 && desiredw == 0){
+        if (desiredx == 0 && desiredy == 0 && desiredy == 0 && desiredw == 0){
           desiredx = lastdesiredx;
           desiredy = lastdesiredy;
           desiredz = lastdesiredz;
@@ -1179,23 +1161,7 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
           fprintf(clog_fptr, "THE CODE ALMOST SET A DESIRED STATE TO ALL ZEROS.\r\n");
           fflush(clog_fptr);
         }
-
-        // NEW**--- Desired-trajectory derivatives for feedforward ---
-        float setpoint_update_interval = received_time - last_setpoint_time;
-        if (setpoint_update_interval < 1e-3f) setpoint_update_interval = 1e-3f;  // clamp to avoid div0 on jitter
-
-        // Desired velocities
-        vdesired_x = (desiredx - prev_desiredx) / setpoint_update_interval;
-        vdesired_y = (desiredy - prev_desiredy) / setpoint_update_interval;
-
-        // Optional: clamp/smooth FF signals to avoid jerk from stepped setpoints
-        // float max_ff_vel = 2.0f;  // m/s
-        // if (vdesired_x >  max_ff_vel) vdesired_x =  max_ff_vel;
-        // if (vdesired_x < -max_ff_vel) vdesired_x = -max_ff_vel;
-        // if (vdesired_y >  max_ff_vel) vdesired_y =  max_ff_vel;
-        // if (vdesired_y < -max_ff_vel) vdesired_y = -max_ff_vel;
-
-        // NEW** END
+        
 
         
 
@@ -1294,28 +1260,15 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
           integral_y += error_y;
           integral_z += KI_z*(error_z);
 
-          
-          // NEW** START Feedback parts
-          float pid_fb_pitch_cmd = x_comp*(Ksx1_P_x*error_x - Ksx2_D_x*dx + KI_x*integral_x)
-                            + y_comp*(-1)*(Ksy1_P_y*error_y - Ksy2_D_y*dy + KI_y*integral_y);
 
-          float pid_fb_roll_cmd  = y_comp*(Ksx1_P_x*error_x - Ksx2_D_x*dx + KI_x*integral_x)
-                            + x_comp*(Ksy1_P_y*error_y - Ksy2_D_y*dy + KI_y*integral_y);
 
-          // --- Lateral feedforward (separate x/y gains, mapped via yaw)
-          float ff_pitch_cmd = x_comp*(KVFF_X * vdesired_x) + y_comp*(-1)*(KVFF_Y * vdesired_y);
-          float ff_roll_cmd  = y_comp*(KVFF_X * vdesired_x) + x_comp*( KVFF_Y * vdesired_y);
+          float desired_pitch_angle = x_comp*(Ksx1_P_x*error_x - Ksx2_D_x*dx + KI_x*integral_x) + y_comp*(-1)*(Ksy1_P_y*error_y - Ksy2_D_y*dy + KI_y*integral_y);
+          float desired_roll_angle = y_comp*(Ksx1_P_x*error_x - Ksx2_D_x*dx + KI_x*integral_x) + x_comp*(Ksy1_P_y*error_y - Ksy2_D_y*dy + KI_y*integral_y);
 
-          // Sum FB + FF into desired angles (radians, pre angle_scaler)
-          float desired_pitch_angle = pid_fb_pitch_cmd + ff_pitch_cmd;
-          float desired_roll_angle  = pid_fb_roll_cmd  + ff_roll_cmd;
+          filtered_desired_pitch = (1-alpha)*filtered_desired_pitch + alpha*desired_pitch_angle;
+          filtered_desired_roll = (1-alpha)*filtered_desired_roll + alpha*desired_roll_angle;
 
-          // first-order smoothing
-          filtered_desired_pitch = (1.0f - alpha)*filtered_desired_pitch + alpha*desired_pitch_angle;
-          filtered_desired_roll  = (1.0f - alpha)*filtered_desired_roll  + alpha*desired_roll_angle;
-          // NEW** END
-
-          float angle_scaler = 290;
+          float angle_scaler = 100;
 
 
 
@@ -1495,13 +1448,6 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
             z_u = MIN_Z_U;
           }
 
-          
-          // NEW** Advance FF history for next iteration
-          prev_desiredx      = desiredx;
-          prev_desiredy      = desiredy;
-          last_setpoint_time = received_time;
-
-          // NEW** END
 
         
           //save the previous desired x, y, and z in case we need them next loop.
@@ -1549,15 +1495,6 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
         //We still want to print data though, and we need to re-initialize things in case the controlelr is armed again.
         roll_u = 1500; pitch_u = 1500; z_u = 900; yaw_u = 1500;
         integral_x = 0; integral_y = 0; integral_z = 0;
-
-        // NEW**: Reset feedforward state
-        vdesired_x = 0.0; 
-        vdesired_y = 0.0;
-        prev_desiredx = desiredx;  // Sync to current setpoint
-        prev_desiredy = desiredy;
-        last_setpoint_time = received_time;  // Sync to current time
-        // This ensures clean startup when controller re-enables
-        // NEW** END
 
         if (write_to_file){
                       //WRITE HERE
