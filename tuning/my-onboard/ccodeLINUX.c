@@ -545,8 +545,8 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
   // x dir
   // float Kp_vel_x = 1.5 * 100;
   float Kp_vel_x = 0;
-  // float Ki_vel_x = 0.01 * 100;
-  float Ki_vel_x = 0.;
+  // float Ki_vel_x = 0.001 * 100;
+  float Ki_vel_x = 0;
   float Kd_vel_x = 0.1;
   float P_term_vel_x = 0.0; 
   float I_term_vel_x = 0.0;
@@ -1326,8 +1326,9 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
           error_vel_x = desired_velocity_x - dx;
           integral_vel_x += error_vel_x;
 
+          float dtd = fmaxf(1e-3f, dt);  
           // Calculate derivative term (change in velocity error)
-          d_error_vel_x = (error_vel_x - last_error_vel_x) / dt;
+          d_error_vel_x = (error_vel_x - last_error_vel_x) / dtd;
 
 
           P_term_vel_x = Kp_vel_x * error_vel_x ; 
