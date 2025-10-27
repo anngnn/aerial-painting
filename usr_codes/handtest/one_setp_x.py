@@ -50,21 +50,20 @@ import numpy as np
 import time
 import struct
 
-'''
-UP, RIGHT, DOWN, UP, RIGHT2, DOWN, TWIST_YAW, UP
-'''
 def usr(flyer):
-    list_waypoints = []     # list of all waypoints
-    time_at_waypoint = []   # time to spend at each waypoint
+    print("HOVER CODE STARTED")
 
     START = time.time()
 
+    flyer.mode(1000)
 
     flyer.select_controller('lqr')
 
     flyer.log(['user code started'])
 
-    # get the first position
+
+    
+    #get the first position
     while True:
         state = flyer.state()
         if len(state) > 1:
@@ -73,56 +72,29 @@ def usr(flyer):
     
     flyer.log(['The user code is running. The flyer is localized to: ' + str(first_pos)])
     
-    def make_wp(base_setpoint, unit_vector, distance):
-        unit_vec = np.array(unit_vector,dtype='int')
-        vec = (distance/np.linalg.norm(unit_vec))*unit_vec
-
-        setpoint = base_setpoint + np.array([vec[0], vec[1], vec[2], 0, 0, 0, 0, 0, 0, 0, 0, 0])
-        return setpoint
-    
-    def make_gradual_wp(base_setpoint, unit_vector, distance, step_size, going_down):
-        remaining_dist = distance
-        prev_setpt = base_setpoint
-        multiplier = -1 if going_down else 1
-
-        while remaining_dist > 0:
-            step = min(step_size, remaining_dist)
-            curr_setpoint = make_wp(prev_setpt, unit_vector, step*multiplier)
-            list_waypoints.append(curr_setpoint)
-            prev_setpt = curr_setpoint
-            remaining_dist -= step
-    
-    # set the first waypoint
+    #set the first waypoint
     setpoint = first_pos
-    setpoint[2] = setpoint[2] + 0.1
+    # setpoint[0] = setpoint[0] - 0.2 #meters
+    # setpoint[1] = setpoint[1] - 0.2 #meters
+    setpoint[2] = setpoint[0] + 0.4 #meters
     setpoint[3:] = 0
     flyer.waypoint(setpoint)
-    current_waypoint = np.copy(setpoint)
 
-    list_waypoints.append(setpoint)
-    time_at_waypoint.append(3)
+    # flyer.delay(5)
 
-    # ABOVE droxel
-    setpoint2 = make_wp(setpoint, [1,0,0], 0.4)
-    list_waypoints.append(setpoint2)
-    time_at_waypoint.append(30)
-
-    # arm the flyer
+    #arm the flyer
     # flyer.arm()
     flyer.run_controller()
 
-    stepped = False
-
-    current_waypoint_idx = 0
-    current_waypoint = list_waypoints[current_waypoint_idx].copy()
-    flyer.waypoint(current_waypoint)
-    time_of_last_switch = time.time() - START
-
     while True:
 
+        # print('looping')
+
+        
+        
         flyer.delay()
 
-        # log our state
+        #log our state
         state = flyer.state()
         if len(state) > 1:
             rounded_time = np.round(time.time() - START, 3)
@@ -133,13 +105,5 @@ def usr(flyer):
             log_list = [rounded_time] + rounded_state_list + [volts, watts]
             flyer.log(log_list)
 
-        current_time = time.time() - START
-        time_at_current = current_time - time_of_last_switch
 
-        if time_at_current >= time_at_waypoint[current_waypoint_idx]:
-            if current_waypoint_idx < len(list_waypoints) - 1: 
-                current_waypoint_idx += 1
-                current_waypoint = list_waypoints[current_waypoint_idx].copy()
-                flyer.waypoint(current_waypoint)
-                time_of_last_switch = current_time
-                print(f'New waypoint: {current_waypoint_idx}')
+        

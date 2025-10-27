@@ -100,12 +100,12 @@ def usr(flyer):
     current_waypoint = np.copy(setpoint)
 
     list_waypoints.append(setpoint)
-    time_at_waypoint.append(2)
+    time_at_waypoint.append(3)
 
     # ABOVE droxel
-    setpoint2 = make_wp(setpoint, [1,0,0], 0.2)
+    setpoint2 = make_wp(setpoint, [1,0,0], 0.4)
     list_waypoints.append(setpoint2)
-    time_at_waypoint.append(0.1)
+    time_at_waypoint.append(30)
 
     # arm the flyer
     # flyer.arm()

@@ -26,6 +26,7 @@ U_Z_COLUMN = 24
 U_YAW_COLUMN = 25
 ERROR_COLUMN = 31
 FC_COLUMN = 32
+
 P_TERM_POS_X = 32
 I_TERM_POS_X = 33
 D_TERM_POS_X = 34
@@ -33,6 +34,14 @@ DESIRED_VEL_X = 35
 ERROR_POS_X = 36
 ERROR_POS_Y = 37
 ERROR_POS_Z = 38
+
+# --- velocity X PID + errors + desired pitch ---
+P_TERM_VEL_X = 39
+I_TERM_VEL_X = 40
+D_TERM_VEL_X = 41
+ERROR_VEL_X   = 42
+D_ERROR_VEL_X = 43
+DESIRED_PITCH_ANGLE = 44  # deg
 
 
 def primary():
@@ -163,6 +172,20 @@ def primary():
             y_kf = y_kf[data_start_index:data_end_index]
             z_kf = z_kf[data_start_index:data_end_index]
             
+        # Read velocity X PID and velocity errors only if any *x2 flags or -ev2 appear
+        if any(flag in cmds for flag in ['-px2','-ix2','-dx2','-pix2','-pdx2','-idx2','-pidx2','-ev2']):
+            v_p_x = [float(row[P_TERM_VEL_X]) for row in data]
+            v_i_x = [float(row[I_TERM_VEL_X]) for row in data]
+            v_d_x = [float(row[D_TERM_VEL_X]) for row in data]
+            err_vel_x  = [float(row[ERROR_VEL_X])   for row in data]
+            derr_vel_x = [float(row[D_ERROR_VEL_X]) for row in data]
+
+        # For desired pitch from CSV (deg) alongside actual pitch in -u or standalone in -dp
+        if '-u' in cmds or '-dp' in cmds:
+            try:
+                desired_pitch_col = np.array([float(row[DESIRED_PITCH_ANGLE]) for row in data])
+            except Exception:
+                desired_pitch_col = None
 
 
         for i,cmd in enumerate(cmds):
@@ -462,6 +485,77 @@ def primary():
                 y_ax.scatter(t_data, desired_roll, label = 'desired roll', s=2)
                 y_ax.set_xlabel('Time (s)')
                 y_ax.set_ylabel('Roll (deg)')
+
+            # --- Velocity X PID terms: single ---
+            if cmd == '-px2':
+                fig, ax = plot_2D(t_data, v_p_x, label='Vx P')
+                ax.set_xlabel('Time (s)'); ax.set_ylabel('Velocity P Term')
+                ax.legend(); ax.set_title('Velocity-X: P term')
+                print('Avg |Vx P|:', np.average(np.abs(v_p_x)))
+
+            if cmd == '-ix2':
+                fig, ax = plot_2D(t_data, v_i_x, label='Vx I')
+                ax.set_xlabel('Time (s)'); ax.set_ylabel('Velocity I Term')
+                ax.legend(); ax.set_title('Velocity-X: I term')
+                print('Avg |Vx I|:', np.average(np.abs(v_i_x)))
+
+            if cmd == '-dx2':
+                fig, ax = plot_2D(t_data, v_d_x, label='Vx D')
+                ax.set_xlabel('Time (s)'); ax.set_ylabel('Velocity D Term')
+                ax.legend(); ax.set_title('Velocity-X: D term')
+                print('Avg |Vx D|:', np.average(np.abs(v_d_x)))
+
+            # --- Velocity X PID terms: combos ---
+            if cmd == '-pix2':
+                fig, ax = plot_2D(t_data, v_p_x, label='Vx P')
+                ax.scatter(t_data, v_i_x, label='Vx I', s=2)
+                ax.set_xlabel('Time (s)'); ax.set_ylabel('Velocity Terms'); ax.legend()
+                ax.set_title('Velocity-X: P & I')
+
+            if cmd == '-pdx2':
+                fig, ax = plot_2D(t_data, v_p_x, label='Vx P')
+                ax.scatter(t_data, v_d_x, label='Vx D', s=2)
+                ax.set_xlabel('Time (s)'); ax.set_ylabel('Velocity Terms'); ax.legend()
+                ax.set_title('Velocity-X: P & D')
+
+            if cmd == '-idx2':
+                fig, ax = plot_2D(t_data, v_i_x, label='Vx I')
+                ax.scatter(t_data, v_d_x, label='Vx D', s=2)
+                ax.set_xlabel('Time (s)'); ax.set_ylabel('Velocity Terms'); ax.legend()
+                ax.set_title('Velocity-X: I & D')
+
+            if cmd == '-pidx2':
+                fig, ax = plot_2D(t_data, v_p_x, label='Vx P')
+                ax.scatter(t_data, v_i_x, label='Vx I', s=2)
+                ax.scatter(t_data, v_d_x, label='Vx D', s=2)
+                ax.set_xlabel('Time (s)'); ax.set_ylabel('Velocity Terms'); ax.legend()
+                ax.set_title('Velocity-X: PID')
+                print('Avg |Vx P|:', np.average(np.abs(v_p_x)))
+                print('Avg |Vx I|:', np.average(np.abs(v_i_x)))
+                print('Avg |Vx D|:', np.average(np.abs(v_d_x)))
+
+            # --- Velocity errors (all) ---
+            if cmd == '-ev2':
+                fig, ax = plot_2D(t_data, err_vel_x, label='error_vel_x')
+                ax.scatter(t_data, derr_vel_x, label='d_error_vel_x', s=2)
+                ax.set_xlabel('Time (s)'); ax.set_ylabel('Velocity Error (m/s)')
+                ax.legend(); ax.set_title('Velocity-X Errors')
+                print('Avg |error_vel_x|:', np.average(np.abs(err_vel_x)))
+                print('Avg |d_error_vel_x|:', np.average(np.abs(derr_vel_x)))
+
+            # --- Desired pitch from CSV (deg) next to actual pitch (deg) ---
+            if cmd == '-dp':
+                if 'pitch_data' not in locals():
+                    # compute actual pitch (deg) once if not already done in -u block
+                    pitch_data = np.array([float(row[13]) for row in data]) * 180/np.pi
+                if desired_pitch_col is not None:
+                    fig, ax = plot_2D(t_data, desired_pitch_col, label='desired pitch (CSV)')
+                    ax.scatter(t_data, pitch_data, label='actual pitch', s=2)
+                    ax.set_xlabel('Time (s)'); ax.set_ylabel('Pitch (deg)')
+                    ax.legend(); ax.set_title('Desired vs Actual Pitch')
+                else:
+                    print('No desired_pitch_angle column available (-dp).')
+
                 
 
 
