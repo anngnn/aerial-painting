@@ -521,9 +521,9 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
 
   // NEW**
   // Initialize gains for POSITION controller
-  float Kp_pos_x = 2.0;
-  float Ki_pos_x = 0;
-  float Kd_pos_x = 0;
+  float Kp_pos_x = 0.5;
+  float Ki_pos_x = 0.001;
+  float Kd_pos_x = 1.0;
   float P_term_pos_x = 0.0; 
   float I_term_pos_x = 0.0;
   float D_term_pos_x = 0.0;
@@ -1289,10 +1289,15 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
 
           desired_velocity_x = P_term_pos_x + I_term_pos_x + D_term_pos_x;
         
-          // float desired_pitch_angle = x_comp*(Ksx1_P_x*error_pos_x - Ksx2_D_x*dx + KI_x*integral_x) + y_comp*(-1)*(Ksy1_P_y*error_pos_y - Ksy2_D_y*dy + KI_y*integral_y);
+          // === PLACEHOLDER: Simple proportional velocity->angle conversion ===
+          // This replaces the inner velocity PID loop temporarily
+          float vel_to_angle_gain = 2.5;  // Tune this (around 2.0-3.0)
+          float velocity_error_x = desired_velocity_x - dx;
+
+          float desired_pitch_angle = vel_to_angle_gain * velocity_error_x;          // float desired_pitch_angle = x_comp*(Ksx1_P_x*error_pos_x - Ksx2_D_x*dx + KI_x*integral_x) + y_comp*(-1)*(Ksy1_P_y*error_pos_y - Ksy2_D_y*dy + KI_y*integral_y);
           float desired_roll_angle = y_comp*(Ksx1_P_x*error_pos_x - Ksx2_D_x*dx + KI_x*integral_x) + x_comp*(Ksy1_P_y*error_pos_y - Ksy2_D_y*dy + KI_y*integral_y);
 
-          // filtered_desired_pitch = (1-alpha)*filtered_desired_pitch + alpha*desired_pitch_angle;
+          filtered_desired_pitch = (1-alpha)*filtered_desired_pitch + alpha*desired_pitch_angle;
           filtered_desired_roll = (1-alpha)*filtered_desired_roll + alpha*desired_roll_angle;
 
           float angle_scaler = 100;

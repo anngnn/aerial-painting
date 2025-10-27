@@ -1,0 +1,15 @@
+[Unit]
+Description=Service File to Kick Off Bootloader
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/pi/onboard
+ExecStart=sudo python3 /home/pi/onboard/bootloader.py
+KillSignal=SIGINT
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+

@@ -160,8 +160,8 @@ def primary():
                 else:
                     x_fig, x_ax = plot_2D(t_data, x_data, label ='actual pos')
                     x_ax.scatter(t_data,x_set, label = 'desired pos', s=2)
-                x_ax.set_xlabel('time')
-                x_ax.set_ylabel('x')
+                    x_ax.set_xlabel('Time (s)')
+                    x_ax.set_ylabel('x position (m)')
                 print('Average x error: ' + str(np.average(abs(error))))
 
             if cmd == '-y':
@@ -171,8 +171,8 @@ def primary():
                 else:
                     y_fig, y_ax = plot_2D(t_data, y_data, label='actual pos')
                     y_ax.scatter(t_data,y_set, label = 'desired pos', s=2)
-                y_ax.set_xlabel('time')
-                y_ax.set_ylabel('y')
+                    y_ax.set_xlabel('Time (s)')
+                    y_ax.set_ylabel('y position (m)')
                 print('Average y error: ' + str(np.average(abs(error))))
 
             if cmd == '-z':
@@ -182,8 +182,8 @@ def primary():
                 else:
                     z_fig, z_ax = plot_2D(t_data, z_data, label='actual pos')
                     z_ax.scatter(t_data,z_set, label = 'desired pos', s=2)
-                z_ax.set_xlabel('time')
-                z_ax.set_ylabel('z')
+                    z_ax.set_xlabel('Time (s)')
+                    z_ax.set_ylabel('z position (m)')
                 print('Average z error: ' + str(np.average(abs(error))))
 
             # # voltage 

@@ -1,0 +1,14 @@
+{
+    "user_code": "sculpting",
+    "server_port": 50301,
+    "server_ip": "224.3.2.1",
+    "atc_direct_ip": "192.168.18.102",
+    "atc_direct_port": 50401, 
+    "update_time": 2,
+    "fc_watchdog": 200,
+    "localizer_ip": "224.1.1.1",
+    "localizer_port": 54321,
+    "localizer_timeout": 0.25,
+    "lander_position": "0.472, -1.556, 0.407,  -0.000, -0.000, 0.000000"
+
+}
