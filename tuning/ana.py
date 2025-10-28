@@ -8,6 +8,9 @@ NUMBER_OF_HEADER_ROWS = 2
 X_COLUMN = 7
 Y_COLUMN = 8
 Z_COLUMN = 9
+DX_COLUMN = 10
+DY_COLUMN = 11
+DZ_COLUMN = 12
 TIME_COLUMN = 2
 X_SET_COLUMN = 19
 Y_SET_COLUMN = 20
@@ -42,7 +45,7 @@ D_TERM_VEL_X = 41
 ERROR_VEL_X   = 42
 D_ERROR_VEL_X = 43
 DESIRED_PITCH_ANGLE = 44  # deg
-
+ACTUAL_VEL_X = 45 
 
 def primary():
     try:
@@ -179,6 +182,10 @@ def primary():
             v_d_x = [float(row[D_TERM_VEL_X]) for row in data]
             err_vel_x  = [float(row[ERROR_VEL_X])   for row in data]
             derr_vel_x = [float(row[D_ERROR_VEL_X]) for row in data]
+
+        if '-vxcomp' in cmds:
+            actual_vel_x_col = [float(row[DX_COLUMN]) for row in data]
+            desired_vel_x_col = [float(row[DESIRED_VEL_X]) for row in data]
 
         # For desired pitch from CSV (deg) alongside actual pitch in -u or standalone in -dp
         if '-u' in cmds or '-dp' in cmds:
@@ -551,10 +558,22 @@ def primary():
                 if desired_pitch_col is not None:
                     fig, ax = plot_2D(t_data, desired_pitch_col, label='desired pitch (CSV)')
                     ax.scatter(t_data, pitch_data, label='actual pitch', s=2)
-                    ax.set_xlabel('Time (s)'); ax.set_ylabel('Pitch (deg)')
+                    ax.set_xlabel('Time (s)')
+                    ax.set_ylabel('Desired Pitch (control units)')
                     ax.legend(); ax.set_title('Desired vs Actual Pitch')
                 else:
                     print('No desired_pitch_angle column available (-dp).')
+
+            # --- Desired vs Actual Velocity X ---
+            if cmd == '-vxcomp':
+                fig, ax = plot_2D(t_data, desired_vel_x_col, label='Desired Vel X')
+                ax.scatter(t_data, actual_vel_x_col, label='Actual Vel X (dx)', s=2, c='orange')
+                ax.set_xlabel('Time (s)')
+                ax.set_ylabel('Velocity X (m/s)')
+                ax.legend()
+                ax.set_title('Desired vs Actual Velocity X')
+                print('Avg |desired_vel_x|:', np.average(np.abs(desired_vel_x_col)))
+                print('Avg |actual_vel_x|:', np.average(np.abs(actual_vel_x_col)))
 
                 
 

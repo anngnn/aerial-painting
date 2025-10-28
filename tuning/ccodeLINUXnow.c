@@ -543,11 +543,9 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
   // Initialize gains for VELOCITY controller
 
   // x dir
-  // float Kp_vel_x = 1.5 * 100;
-  float Kp_vel_x = 0;
-  // float Ki_vel_x = 0.001 * 100;
-  float Ki_vel_x = 0;
-  float Kd_vel_x = 0.1;
+  float Kp_vel_x = 1.5 * 100;
+  float Ki_vel_x = 0.0005 * 100;
+  float Kd_vel_x = 0;
   float P_term_vel_x = 0.0; 
   float I_term_vel_x = 0.0;
   float D_term_vel_x = 0.0;
@@ -737,7 +735,8 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
       fprintf(fptr, "int_x,int_y,int_z,count_delta,voltage,error,");
       fprintf(fptr, "P_term_pos_x,I_term_pos_x,D_term_pos_x,desired_velocity_x,");
       fprintf(fptr, "error_pos_x,error_pos_y,error_pos_z,");
-      fprintf(fptr, "P_term_vel_x,I_term_vel_x,D_term_vel_x,error_vel_x,d_error_vel_x,desired_pitch_angle\n");
+      fprintf(fptr, "P_term_vel_x,I_term_vel_x,D_term_vel_x,error_vel_x,d_error_vel_x,desired_pitch_angle,");
+      fprintf(fptr, "actual_vel_x\n"); 
 
       clock_gettime(CLOCK_MONOTONIC, &local_time_of_user_code_start);
       fflush(fptr);
@@ -1320,20 +1319,19 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
           I_term_pos_x = Ki_pos_x * integral_x;
           D_term_pos_x = -Kd_pos_x * dx;       // D term should always oppose velocity to provide damping
 
-          desired_velocity_x = P_term_pos_x + I_term_pos_x + D_term_pos_x;
+          desired_velocity_x = -(P_term_pos_x + I_term_pos_x + D_term_pos_x);
         
           // Velocity Controller
           error_vel_x = desired_velocity_x - dx;
           integral_vel_x += error_vel_x;
 
-          float dtd = fmaxf(1e-3f, dt);  
           // Calculate derivative term (change in velocity error)
-          d_error_vel_x = (error_vel_x - last_error_vel_x) / dtd;
+          d_error_vel_x = (error_vel_x - last_error_vel_x) / dt;
 
 
           P_term_vel_x = Kp_vel_x * error_vel_x ; 
           I_term_vel_x = Ki_vel_x * integral_vel_x;
-          D_term_vel_x = -Kd_vel_x * d_error_vel_x;     
+          D_term_vel_x = Kd_vel_x * d_error_vel_x;     
 
           desired_pitch_angle = P_term_vel_x + I_term_vel_x + D_term_vel_x;          
           // float desired_pitch_angle = x_comp*(Ksx1_P_x*error_pos_x - Ksx2_D_x*dx + KI_x*integral_x) + y_comp*(-1)*(Ksy1_P_y*error_pos_y - Ksy2_D_y*dy + KI_y*integral_y);
@@ -1357,7 +1355,7 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
           uw = -1*uw;
 
           //Convert the LQR commands into integer values from 1000 to 2000 around 1500
-          pitch_u = (int16_t) (filtered_desired_pitch + 1500); // NEW**
+          pitch_u = (int16_t) -(filtered_desired_pitch + 1500); // NEW** Negate in the velocity controller output to get correct sign for velocity
           // pitch_u = (int16_t) (angle_scaler*filtered_desired_pitch + 1500);
           roll_u = (int16_t) (angle_scaler*filtered_desired_roll + 1500);
           z_u = (int16_t) (100*uz + 1500);
@@ -1559,7 +1557,8 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
           fprintf(fptr, "%0.3f,%0.3f,%0.3f,%d,%d,%d,", integral_x, integral_y, integral_z, count_delta, *shared_battery_voltage, 0);
           fprintf(fptr, "%0.3f,%0.3f,%0.3f,%0.3f,", P_term_pos_x, I_term_pos_x, D_term_pos_x, desired_velocity_x);
           fprintf(fptr, "%0.3f,%0.3f,%0.3f,", error_pos_x, error_pos_y, error_pos_z);
-          fprintf(fptr, "%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f\n", P_term_vel_x, I_term_vel_x, D_term_vel_x, error_vel_x, d_error_vel_x, desired_pitch_angle);
+          fprintf(fptr, "%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,", P_term_vel_x, I_term_vel_x, D_term_vel_x, error_vel_x, d_error_vel_x, desired_pitch_angle);
+          fprintf(fptr, "%0.3f\n", dx); 
 
           // for (int i=0; i < 12; i++){
           //   fprintf(fptr, "%0.3f,", eststate[i]);
@@ -1601,7 +1600,8 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
           fprintf(fptr, "%0.3f,%0.3f,%0.3f,%d,%d,%d,", integral_x, integral_y, integral_z, count_delta, *shared_battery_voltage, 1);
           fprintf(fptr, "%0.3f,%0.3f,%0.3f,%0.3f,", P_term_pos_x, I_term_pos_x, D_term_pos_x, desired_velocity_x);
           fprintf(fptr, "%0.3f,%0.3f,%0.3f,", error_pos_x, error_pos_y, error_pos_z);
-          fprintf(fptr, "%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f\n", P_term_vel_x, I_term_vel_x, D_term_vel_x, error_vel_x, d_error_vel_x, desired_pitch_angle);
+          fprintf(fptr, "%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,", P_term_vel_x, I_term_vel_x, D_term_vel_x, error_vel_x, d_error_vel_x, desired_pitch_angle);
+          fprintf(fptr, "%0.3f\n", dx); 
 
           // for (int i=0; i < 12; i++){
           //   fprintf(fptr, "%0.3f,", eststate[i]);
@@ -1634,7 +1634,9 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
         fprintf(fptr, "%0.3f,%0.3f,%0.3f,%d,%d,%d,", 0.0, 0.0, 0.0, 0, *shared_battery_voltage, 2);
         fprintf(fptr, "%0.3f,%0.3f,%0.3f,%0.3f,", P_term_pos_x, I_term_pos_x, D_term_pos_x, desired_velocity_x);
         fprintf(fptr, "%0.3f,%0.3f,%0.3f,", error_pos_x, error_pos_y, error_pos_z);
-        fprintf(fptr, "%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f\n", P_term_vel_x, I_term_vel_x, D_term_vel_x, error_vel_x, d_error_vel_x, desired_pitch_angle);
+        fprintf(fptr, "%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,", P_term_vel_x, I_term_vel_x, D_term_vel_x, error_vel_x, d_error_vel_x, desired_pitch_angle);
+        fprintf(fptr, "%0.3f\n", dx); 
+
         // for (int i=0; i < 12; i++){
         //   fprintf(fptr, "%0.3f,", eststate[i]);
         // }
