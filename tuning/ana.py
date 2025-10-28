@@ -481,17 +481,39 @@ def primary():
                 print('Average error Z: ' + str(np.average(np.abs(error_pos_z))))
 
             if cmd == '-u':
-                # print('doing the u')
-                x_fig, x_ax = plot_2D(t_data, pitch_data, label ='actual pitch')
-                x_ax.scatter(t_data, desired_pitch, label = 'desired pitch', s=2)
-                # x_ax.scatter(t_data, commanded_pitch, label = 'pitch cmdd', s=2, c='black')
+                # Read the PWM command values and actual angles
+                roll_u, pitch_u, z_u, yaw_u = zip(*[(float(row[U_ROLL_COLUMN]), float(row[U_PITCH_COLUMN]), float(row[U_Z_COLUMN]), float(row[U_YAW_COLUMN])) for row in data])
+                roll_u = np.array(roll_u)
+                pitch_u = np.array(pitch_u)
+                
+                # Convert PWM values to degrees
+                # PWM range: 1000-2000, center at 1500
+                # If 500 units = -pi radians and -500 units = +pi radians:
+                # Then: (pwm - 1500) maps to angle, where 500 → -π and -500 → +π
+                # So: angle_rad = -(pwm - 1500) * π/500
+                # Or: angle_deg = -(pwm - 1500) * 180/500
+                
+                desired_roll = -(roll_u - 1500) * 180/500
+                desired_pitch = -(pitch_u - 1500) * 180/500
+                
+                # Convert actual angles from radians to degrees
+                pitch_data, roll_data, yaw_data = zip(*[(float(row[13]), float(row[14]), float(row[15])) for row in data])
+                pitch_data = np.array(pitch_data) * 180/np.pi
+                roll_data = np.array(roll_data) * 180/np.pi
+
+                # Plot pitch comparison
+                x_fig, x_ax = plot_2D(t_data, pitch_data, label='actual pitch')
+                x_ax.scatter(t_data, desired_pitch, label='desired pitch', s=2)
                 x_ax.set_xlabel('Time (s)')
                 x_ax.set_ylabel('Pitch (deg)')
+                x_ax.legend()
 
-                y_fig, y_ax = plot_2D(t_data, roll_data, label ='actual roll')
-                y_ax.scatter(t_data, desired_roll, label = 'desired roll', s=2)
+                # Plot roll comparison
+                y_fig, y_ax = plot_2D(t_data, roll_data, label='actual roll')
+                y_ax.scatter(t_data, desired_roll, label='desired roll', s=2)
                 y_ax.set_xlabel('Time (s)')
                 y_ax.set_ylabel('Roll (deg)')
+                y_ax.legend()
 
             # --- Velocity X PID terms: single ---
             if cmd == '-px2':
@@ -553,27 +575,50 @@ def primary():
             # --- Desired pitch from CSV (deg) next to actual pitch (deg) ---
             if cmd == '-dp':
                 if 'pitch_data' not in locals():
-                    # compute actual pitch (deg) once if not already done in -u block
-                    pitch_data = np.array([float(row[13]) for row in data]) * 180/np.pi
-                if desired_pitch_col is not None:
-                    fig, ax = plot_2D(t_data, desired_pitch_col, label='desired pitch (CSV)')
-                    ax.scatter(t_data, pitch_data, label='actual pitch', s=2)
-                    ax.set_xlabel('Time (s)')
-                    ax.set_ylabel('Desired Pitch (control units)')
-                    ax.legend(); ax.set_title('Desired vs Actual Pitch')
-                else:
-                    print('No desired_pitch_angle column available (-dp).')
+                    pitch_data = np.array([float(row[13]) for row in data]) * 180/np.pi  # deg
 
-            # --- Desired vs Actual Velocity X ---
+                try:
+                    desired_pitch_col = np.array([float(row[DESIRED_PITCH_ANGLE]) for row in data])
+                except Exception:
+                    desired_pitch_col = None
+
+                if desired_pitch_col is None:
+                    print('No desired_pitch_angle column available (-dp).')
+                else:
+                    # Detect units (control units vs deg)
+                    if np.nanmax(np.abs(desired_pitch_col)) <= 520:
+                        desired_pitch_units = desired_pitch_col
+                    else:
+                        desired_pitch_units = -desired_pitch_col * (500.0/180.0)
+
+                    actual_pitch_units = -pitch_data * (500.0/180.0)
+
+                    fig, ax = plot_2D(t_data, actual_pitch_units, label='actual pitch (control units)')
+                    ax.scatter(t_data, desired_pitch_units, label='desired pitch (control units)', s=2)
+                    ax.set_xlabel('Time (s)')
+                    ax.set_ylabel('Pitch (control units)')
+                    ax.legend()
+                    ax.set_title('Desired vs Actual Pitch (control units)')
+
+                    # --- AUTO ZOOM based on data range ---
+                    all_vals = np.concatenate([desired_pitch_units, actual_pitch_units])
+                    min_y, max_y = np.nanmin(all_vals), np.nanmax(all_vals)
+                    y_margin = 0.1 * (max_y - min_y if max_y != min_y else 10)
+                    ax.set_ylim([min_y - y_margin, max_y + y_margin])
+
+
+
             if cmd == '-vxcomp':
+                # Negate one of them to match coordinate frames
                 fig, ax = plot_2D(t_data, desired_vel_x_col, label='Desired Vel X')
-                ax.scatter(t_data, actual_vel_x_col, label='Actual Vel X (dx)', s=2, c='orange')
+                ax.scatter(t_data, [-v for v in actual_vel_x_col], label='Actual Vel X (dx)', s=2, c='orange')
+                # OR alternatively:
+                # fig, ax = plot_2D(t_data, [-v for v in desired_vel_x_col], label='Desired Vel X')
+                # ax.scatter(t_data, actual_vel_x_col, label='Actual Vel X (dx)', s=2, c='orange')
                 ax.set_xlabel('Time (s)')
                 ax.set_ylabel('Velocity X (m/s)')
                 ax.legend()
                 ax.set_title('Desired vs Actual Velocity X')
-                print('Avg |desired_vel_x|:', np.average(np.abs(desired_vel_x_col)))
-                print('Avg |actual_vel_x|:', np.average(np.abs(actual_vel_x_col)))
 
                 
 
