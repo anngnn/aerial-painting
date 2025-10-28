@@ -528,9 +528,9 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
   // Initialize gains for POSITION controller
 
   // x dir
-  float Kp_pos_x = 0.5;
+  float Kp_pos_x = 2.5;
   float Ki_pos_x = 0.001;
-  float Kd_pos_x = 1.0;
+  float Kd_pos_x = 1.5;
   float P_term_pos_x = 0.0; 
   float I_term_pos_x = 0.0;
   float D_term_pos_x = 0.0;
@@ -543,8 +543,9 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
   // Initialize gains for VELOCITY controller
 
   // x dir
-  float Kp_vel_x = 1.5 * 100;
-  float Ki_vel_x = 0.0005 * 100;
+  float Kp_vel_x = 2.0 * 100;
+  // float Ki_vel_x = 0.0005 * 100;
+  float Ki_vel_x = 0.0;
   float Kd_vel_x = 0;
   float P_term_vel_x = 0.0; 
   float I_term_vel_x = 0.0;
@@ -1319,7 +1320,7 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
           I_term_pos_x = Ki_pos_x * integral_x;
           D_term_pos_x = -Kd_pos_x * dx;       // D term should always oppose velocity to provide damping
 
-          desired_velocity_x = -(P_term_pos_x + I_term_pos_x + D_term_pos_x);
+          desired_velocity_x = P_term_pos_x + I_term_pos_x + D_term_pos_x;
         
           // Velocity Controller
           error_vel_x = desired_velocity_x - dx;
@@ -1355,7 +1356,7 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
           uw = -1*uw;
 
           //Convert the LQR commands into integer values from 1000 to 2000 around 1500
-          pitch_u = (int16_t) -(filtered_desired_pitch + 1500); // NEW** Negate in the velocity controller output to get correct sign for velocity
+          pitch_u = (int16_t) filtered_desired_pitch + 1500; // NEW**
           // pitch_u = (int16_t) (angle_scaler*filtered_desired_pitch + 1500);
           roll_u = (int16_t) (angle_scaler*filtered_desired_roll + 1500);
           z_u = (int16_t) (100*uz + 1500);

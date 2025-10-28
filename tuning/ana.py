@@ -589,9 +589,9 @@ def primary():
                     if np.nanmax(np.abs(desired_pitch_col)) <= 520:
                         desired_pitch_units = desired_pitch_col
                     else:
-                        desired_pitch_units = -desired_pitch_col * (500.0/180.0)
+                        desired_pitch_units = -desired_pitch_col * (500.0/90.0)
 
-                    actual_pitch_units = -pitch_data * (500.0/180.0)
+                    actual_pitch_units = -pitch_data * (500.0/90.0)
 
                     fig, ax = plot_2D(t_data, actual_pitch_units, label='actual pitch (control units)')
                     ax.scatter(t_data, desired_pitch_units, label='desired pitch (control units)', s=2)
