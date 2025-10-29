@@ -542,9 +542,9 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
   float error_pos_x = 0.0;
 
   // y dir
-  float Kp_pos_y = 1.0;
-  float Ki_pos_y = 0.0;
-  float Kd_pos_y = 0.5;
+  float Kp_pos_y = 6.0;
+  float Ki_pos_y = 0.005;
+  float Kd_pos_y = 4.2;
   float P_term_pos_y = 0.0; 
   float I_term_pos_y = 0.0;
   float D_term_pos_y = 0.0;
