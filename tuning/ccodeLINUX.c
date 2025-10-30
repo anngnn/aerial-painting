@@ -530,7 +530,6 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
   float error_pos_z = 0.0;
 
   // Initialize gains for POSITION controller
-
   // x dir
   float Kp_pos_x = 2.5;
   float Ki_pos_x = 0.0015;
@@ -541,18 +540,7 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
   float desired_velocity_x = 0.0;
   float error_pos_x = 0.0;
 
-  // y dir
-  float Kp_pos_y = 2.2;
-  float Ki_pos_y = 0.003;
-  float Kd_pos_y = 2.25;
-  float P_term_pos_y = 0.0; 
-  float I_term_pos_y = 0.0;
-  float D_term_pos_y = 0.0;
-  float desired_velocity_y = 0.0;
-  float error_pos_y = 0.0;
-  
   // Initialize gains for VELOCITY controller
-
   // x dir
   float Kp_vel_x = 2.0 * 100;
   // float Ki_vel_x = 0.0002 * 100;
@@ -566,11 +554,24 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
   float d_error_vel_x = 0.0;
   float desired_pitch_angle = 0.0;
   
+
+  // Initialize gains for POSITION controller
   // y dir
-  float Kp_vel_y = 0.5 * 100;
+  float Kp_pos_y = 1.5;
+  float Ki_pos_y = 0.005;
+  float Kd_pos_y = 2.25;
+  float P_term_pos_y = 0.0; 
+  float I_term_pos_y = 0.0;
+  float D_term_pos_y = 0.0;
+  float desired_velocity_y = 0.0;
+  float error_pos_y = 0.0;
+  
+  // Initialize gains for VELOCITY controller
+  // y dir
+  float Kp_vel_y = 2.0 * 100;
   // float Ki_vel_y = 0.0002 * 100;
   float Ki_vel_y = 0.0;
-  float Kd_vel_y = 0;
+  float Kd_vel_y = 0.0;
   float P_term_vel_y = 0.0; 
   float I_term_vel_y = 0.0;
   float D_term_vel_y = 0.0;
