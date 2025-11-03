@@ -559,7 +559,7 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
   // y dir
   float Kp_pos_y = 2.5;
   float Ki_pos_y = 0.0015;
-  float Kd_pos_y = 2.0;
+  float Kd_pos_y = 1.5;
   float P_term_pos_y = 0.0; 
   float I_term_pos_y = 0.0;
   float D_term_pos_y = 0.0;
@@ -1317,8 +1317,8 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
           //first, get the percentage of each that should be added based on yaw
           // double x_comp = cos((double)yaw);
           // double y_comp = sin((double)yaw);
-          // double x_comp = 1;
-          // double y_comp = 0;
+          double x_comp = 1;
+          double y_comp = 0;
 
           // Get the error in x, y, z
           error_pos_x = desiredx - x; // NEW**
@@ -1333,20 +1333,18 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
 
           // Store previous velocity for derivative calculation
 
+          // POSITION Controller
           integral_x += error_pos_x;
           integral_y += error_pos_y;
           integral_z += KI_z*(error_pos_z);
 
-          // POSITION Controller
           // x-dir
           P_term_pos_x = Kp_pos_x * error_pos_x ; 
           I_term_pos_x = Ki_pos_x * integral_x;
           D_term_pos_x = -Kd_pos_x * dx;       // D term should always oppose velocity to provide damping
 
           desired_velocity_x = P_term_pos_x + I_term_pos_x + D_term_pos_x;
-
-
-          // POSITION Controller
+        
           // y-dir
           P_term_pos_y = Kp_pos_y * error_pos_y ; 
           I_term_pos_y = Ki_pos_y * integral_y;
@@ -1354,60 +1352,29 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
 
           desired_velocity_y = P_term_pos_y + I_term_pos_y + D_term_pos_y;
 
-          // **NEW: transform desired velocities from WORLD frame to DRONE frame
-          float desired_velocity_x_drone = desired_velocity_x * cos(yaw) + desired_velocity_y * sin(yaw);
-          float desired_velocity_y_drone = -desired_velocity_x * sin(yaw) + desired_velocity_y * cos(yaw);
-
-          // transform actual velocities from WORLD to DRONE frame
-          float dx_drone = dx * cos(yaw) + dy * sin(yaw);
-          float dy_drone = -dx * sin(yaw) + dy * cos(yaw);
-
           // VELOCITY Controller
+
           // x-dir
-          // use the DRONE frame velocities for velocity controller
-          error_vel_x = desired_velocity_x_drone - dx_drone;  // Compare to dx (which is already in drone frame from optitrack)
+          error_vel_x = desired_velocity_x - dx;
           integral_vel_x += error_vel_x;
+
+          // Calculate derivative term (change in velocity error)
           d_error_vel_x = (error_vel_x - last_error_vel_x) / dt;
 
-          P_term_vel_x = Kp_vel_x * error_vel_x; 
+          P_term_vel_x = Kp_vel_x * error_vel_x ; 
           I_term_vel_x = Ki_vel_x * integral_vel_x;
-          D_term_vel_x = Kd_vel_x * d_error_vel_x;
+          D_term_vel_x = Kd_vel_x * d_error_vel_x;     
 
-          // VELOCITY Controller
-          // Y-dir
-          // use the DRONE frame velocities for velocity controller
-          error_vel_y = desired_velocity_y_drone - dy_drone;  // Compare to dy (which is already in drone frame from optitrack)
+          // y-dir
+          error_vel_y = desired_velocity_y - dy;
           integral_vel_y += error_vel_y;
+
+          // Calculate derivative term (change in velocity error)
           d_error_vel_y = (error_vel_y - last_error_vel_y) / dt;
 
-          P_term_vel_y = Kp_vel_y * error_vel_y; 
+          P_term_vel_y = Kp_vel_y * error_vel_y ; 
           I_term_vel_y = Ki_vel_y * integral_vel_y;
-          D_term_vel_y = Kd_vel_y * d_error_vel_y;
-
-          // **NEW END
-
-          // VELOCITY Controller
-          // x-dir
-          // error_vel_x = desired_velocity_x - dx;
-          // integral_vel_x += error_vel_x;
-          // // Calculate derivative term (change in velocity error)
-          // d_error_vel_x = (error_vel_x - last_error_vel_x) / dt;
-
-          // P_term_vel_x = Kp_vel_x * error_vel_x ; 
-          // I_term_vel_x = Ki_vel_x * integral_vel_x;
-          // D_term_vel_x = Kd_vel_x * d_error_vel_x;     
-
-          
-          // VELOCITY Controller
-          // y-dir
-          // error_vel_y = desired_velocity_y - dy;
-          // integral_vel_y += error_vel_y;
-          // // Calculate derivative term (change in velocity error)
-          // d_error_vel_y = (error_vel_y - last_error_vel_y) / dt;
-
-          // P_term_vel_y = Kp_vel_y * error_vel_y ; 
-          // I_term_vel_y = Ki_vel_y * integral_vel_y;
-          // D_term_vel_y = Kd_vel_y * d_error_vel_y;     
+          D_term_vel_y = Kd_vel_y * d_error_vel_y;     
 
           desired_pitch_angle = P_term_vel_x + I_term_vel_x + D_term_vel_x;          
           desired_roll_angle = -(P_term_vel_y + I_term_vel_y + D_term_vel_y); // negate since negative pitch (ie. -200) goes forward in y dir
@@ -1417,8 +1384,8 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
 
           //THis is essentially matrix multiplication of the error vector times the K vecor, just written out ahead of time
           //with the values that would compute to zero as zero, assuming a desired 0 velocity and 0 roll, pitch
-          // ux = x_comp*(Ksx1_P_x*(error_pos_x) - Ksx2_D_x*(dx) - Ksx3_oll) - Ksy4_D_roll*(droll));
-          // uy = y_comp*(Ksx1_P_x*(error_pos_x) - Ksx2_D_x*(dx) - Ksx3_P_pitch*(pitch) - Ksx4_D_pitch*(dpitch)) + x_comp*(Ksy1_P_y*(error_pos_y) - Ksy2_D_y*(dy) - P_pitch*(pitch) - Ksx4_D_pitch*(dpitch)) + y_comp*(-1)*(Ksy1_P_y*(error_pos_y) - Ksy2_D_y*(dy) - Ksy3_P_roll*(rKsy3_P_roll*(roll) - Ksy4_D_roll*(droll));
+          // ux = x_comp*(Ksx1_P_x*(error_pos_x) - Ksx2_D_x*(dx) - Ksx3_P_pitch*(pitch) - Ksx4_D_pitch*(dpitch)) + y_comp*(-1)*(Ksy1_P_y*(error_pos_y) - Ksy2_D_y*(dy) - Ksy3_P_roll*(roll) - Ksy4_D_roll*(droll));
+          // uy = y_comp*(Ksx1_P_x*(error_pos_x) - Ksx2_D_x*(dx) - Ksx3_P_pitch*(pitch) - Ksx4_D_pitch*(dpitch)) + x_comp*(Ksy1_P_y*(error_pos_y) - Ksy2_D_y*(dy) - Ksy3_P_roll*(roll) - Ksy4_D_roll*(droll));
           uz = Ksz1*(error_pos_z) - Ksz2*(dz);
           uw = Ksw1*(desiredw - yaw) - Ksw2*(dyaw);
 
