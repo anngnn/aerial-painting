@@ -1313,12 +1313,10 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
         }
         else{
 
-          //no errors. Go ahead and run the controller.
-          //first, get the percentage of each that should be added based on yaw
-          // double x_comp = cos((double)yaw);
-          // double y_comp = sin((double)yaw);
-          // double x_comp = 1;
-          // double y_comp = 0;
+          // no errors. Go ahead and run the controller.
+          // first, get the percentage of each that should be added based on yaw
+          double x_comp = cos((double)yaw);
+          double y_comp = sin((double)yaw);
 
           // Get the error in x, y, z
           error_pos_x = desiredx - x; // NEW**
@@ -1328,10 +1326,6 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
           //HYBRID - set up the integral commands (to compensate wind, dying batteries)
           // integral_x += KI_x*(error_pos_x);
           // integral_y += KI_y*(error_pos_y);
-
-          // NEW**
-
-          // Store previous velocity for derivative calculation
 
           integral_x += error_pos_x;
           integral_y += error_pos_y;
@@ -1354,18 +1348,18 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
 
           desired_velocity_y = P_term_pos_y + I_term_pos_y + D_term_pos_y;
 
-          // **NEW: transform desired velocities from WORLD frame to DRONE frame
-          float desired_velocity_x_drone = desired_velocity_x * cos(yaw) + desired_velocity_y * sin(yaw);
-          float desired_velocity_y_drone = -desired_velocity_x * sin(yaw) + desired_velocity_y * cos(yaw);
+          // transform desired velocities from WORLD frame to DRONE frame
+          float desired_velocity_x_drone = desired_velocity_x * x_comp + desired_velocity_y * y_comp;
+          float desired_velocity_y_drone = -desired_velocity_x * y_comp + desired_velocity_y * x_comp;
 
           // transform actual velocities from WORLD to DRONE frame
-          float dx_drone = dx * cos(yaw) + dy * sin(yaw);
-          float dy_drone = -dx * sin(yaw) + dy * cos(yaw);
+          float dx_drone = dx * x_comp + dy * y_comp;
+          float dy_drone = -dx * y_comp + dy * x_comp;
 
           // VELOCITY Controller
           // x-dir
           // use the DRONE frame velocities for velocity controller
-          error_vel_x = desired_velocity_x_drone - dx_drone;  // Compare to dx (which is already in drone frame from optitrack)
+          error_vel_x = desired_velocity_x_drone - dx_drone;
           integral_vel_x += error_vel_x;
           d_error_vel_x = (error_vel_x - last_error_vel_x) / dt;
 
@@ -1376,38 +1370,13 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
           // VELOCITY Controller
           // Y-dir
           // use the DRONE frame velocities for velocity controller
-          error_vel_y = desired_velocity_y_drone - dy_drone;  // Compare to dy (which is already in drone frame from optitrack)
+          error_vel_y = desired_velocity_y_drone - dy_drone;
           integral_vel_y += error_vel_y;
           d_error_vel_y = (error_vel_y - last_error_vel_y) / dt;
 
           P_term_vel_y = Kp_vel_y * error_vel_y; 
           I_term_vel_y = Ki_vel_y * integral_vel_y;
           D_term_vel_y = Kd_vel_y * d_error_vel_y;
-
-          // **NEW END
-
-          // VELOCITY Controller
-          // x-dir
-          // error_vel_x = desired_velocity_x - dx;
-          // integral_vel_x += error_vel_x;
-          // // Calculate derivative term (change in velocity error)
-          // d_error_vel_x = (error_vel_x - last_error_vel_x) / dt;
-
-          // P_term_vel_x = Kp_vel_x * error_vel_x ; 
-          // I_term_vel_x = Ki_vel_x * integral_vel_x;
-          // D_term_vel_x = Kd_vel_x * d_error_vel_x;     
-
-          
-          // VELOCITY Controller
-          // y-dir
-          // error_vel_y = desired_velocity_y - dy;
-          // integral_vel_y += error_vel_y;
-          // // Calculate derivative term (change in velocity error)
-          // d_error_vel_y = (error_vel_y - last_error_vel_y) / dt;
-
-          // P_term_vel_y = Kp_vel_y * error_vel_y ; 
-          // I_term_vel_y = Ki_vel_y * integral_vel_y;
-          // D_term_vel_y = Kd_vel_y * d_error_vel_y;     
 
           desired_pitch_angle = P_term_vel_x + I_term_vel_x + D_term_vel_x;          
           desired_roll_angle = -(P_term_vel_y + I_term_vel_y + D_term_vel_y); // negate since negative pitch (ie. -200) goes forward in y dir
