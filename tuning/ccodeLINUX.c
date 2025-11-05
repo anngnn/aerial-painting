@@ -567,7 +567,7 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
   
   // Initialize gains for VELOCITY controller
   // y dir
-  float Kp_vel_y = 2.2 * 100;
+  float Kp_vel_y = 2.0 * 100;
   float Ki_vel_y = 0.0005 * 100;
   // float Ki_vel_y = 0.0;
   float Kd_vel_y = 0.0;
