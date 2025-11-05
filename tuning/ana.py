@@ -4,48 +4,82 @@ from mpl_toolkits.mplot3d import Axes3D
 import sys
 import numpy as np
 
-NUMBER_OF_HEADER_ROWS = 2
+NUMBER_OF_HEADER_ROWS = 2  # Add this!
+
+# Columns 0-6: timing/metadata
+TIME_COLUMN = 2
+FREQ_COLUMN = 4
+
+# Columns 7-18: state
 X_COLUMN = 7
 Y_COLUMN = 8
 Z_COLUMN = 9
 DX_COLUMN = 10
 DY_COLUMN = 11
 DZ_COLUMN = 12
-TIME_COLUMN = 2
+# pitch=13, roll=14, yaw=15, dpitch=16, droll=17, dyaw=18
+
+# Columns 19-25: setpoints and commands
 X_SET_COLUMN = 19
 Y_SET_COLUMN = 20
 Z_SET_COLUMN = 21
-X_KF_COLUMN = 32
-Y_KF_COLUMN = 33
-Z_KF_COLUMN = 34
-FREQ_COLUMN = 4
-MISSED_MSG_COLUMN = 29
-X_INTEGRAL = 26
-Y_INTEGRAL = 27
-Z_INTEGRAL = 28
 U_ROLL_COLUMN = 22
 U_PITCH_COLUMN = 23
 U_Z_COLUMN = 24
 U_YAW_COLUMN = 25
-ERROR_COLUMN = 31
-FC_COLUMN = 32
 
+# Columns 26-31: integrals, diagnostics
+X_INTEGRAL = 26
+Y_INTEGRAL = 27
+Z_INTEGRAL = 28
+MISSED_MSG_COLUMN = 29
+# voltage=30
+ERROR_COLUMN = 31
+
+# Columns 32-35: Position controller X
 P_TERM_POS_X = 32
 I_TERM_POS_X = 33
 D_TERM_POS_X = 34
 DESIRED_VEL_X = 35
-ERROR_POS_X = 36
-ERROR_POS_Y = 37
-ERROR_POS_Z = 38
 
-# --- velocity X PID + errors + desired pitch ---
-P_TERM_VEL_X = 39
-I_TERM_VEL_X = 40
-D_TERM_VEL_X = 41
-ERROR_VEL_X   = 42
-D_ERROR_VEL_X = 43
-DESIRED_PITCH_ANGLE = 44  # deg
-ACTUAL_VEL_X = 45 
+# Columns 36-39: Position controller Y
+P_TERM_POS_Y = 36
+I_TERM_POS_Y = 37
+D_TERM_POS_Y = 38
+DESIRED_VEL_Y = 39
+
+# Columns 40-42: Position errors
+ERROR_POS_X = 40
+ERROR_POS_Y = 41
+ERROR_POS_Z = 42
+
+# Columns 43-48: Velocity controller X
+P_TERM_VEL_X = 43
+I_TERM_VEL_X = 44
+D_TERM_VEL_X = 45
+ERROR_VEL_X = 46
+D_ERROR_VEL_X = 47
+DESIRED_PITCH_ANGLE = 48
+
+# Columns 49-54: Velocity controller Y
+P_TERM_VEL_Y = 49
+I_TERM_VEL_Y = 50
+D_TERM_VEL_Y = 51
+ERROR_VEL_Y = 52
+D_ERROR_VEL_Y = 53
+DESIRED_ROLL_ANGLE = 54
+
+# Columns 55-58: Actual values
+ACTUAL_VEL_X = 55
+ACTUAL_VEL_Y = 56
+ACTUAL_PITCH = 57  # radians
+ACTUAL_ROLL = 58   # radians
+
+# Legacy/unused columns (if you need Kalman filter support later)
+X_KF_COLUMN = 32  # Not currently in CSV but referenced in code
+Y_KF_COLUMN = 33
+Z_KF_COLUMN = 34
+FC_COLUMN = 32  # Not currently in CSV but referenced in code
 
 def primary():
     try:
@@ -70,6 +104,12 @@ def primary():
 
 
         t_data = [float(row[TIME_COLUMN]) for row in data]
+
+        if '-py' in cmds or '-iy' in cmds or '-dy' in cmds or '-vy' in cmds or '-piy' in cmds or '-pdy' in cmds or '-idy' in cmds or '-pidy' in cmds:
+            p_term_y = [float(row[P_TERM_POS_Y]) for row in data]
+            i_term_y = [float(row[I_TERM_POS_Y]) for row in data]
+            d_term_y = [float(row[D_TERM_POS_Y]) for row in data]
+            desired_vel_y = [float(row[DESIRED_VEL_Y]) for row in data]
 
         if '-x' in cmds or '-y' in cmds or '-z' in cmds or '-k' in cmds or '-3D' in cmds:
 
@@ -174,6 +214,13 @@ def primary():
             x_kf = x_kf[data_start_index:data_end_index]
             y_kf = y_kf[data_start_index:data_end_index]
             z_kf = z_kf[data_start_index:data_end_index]
+
+        if any(flag in cmds for flag in ['-py2','-iy2','-dy2','-piy2','-pdy2','-idy2','-pidy2','-ev2y']):
+            v_p_y = [float(row[P_TERM_VEL_Y]) for row in data]
+            v_i_y = [float(row[I_TERM_VEL_Y]) for row in data]
+            v_d_y = [float(row[D_TERM_VEL_Y]) for row in data]
+            err_vel_y_col  = [float(row[ERROR_VEL_Y]) for row in data]
+            derr_vel_y_col = [float(row[D_ERROR_VEL_Y]) for row in data]
             
         # Read velocity X PID and velocity errors only if any *x2 flags or -ev2 appear
         if any(flag in cmds for flag in ['-px2','-ix2','-dx2','-pix2','-pdx2','-idx2','-pidx2','-ev2']):
@@ -183,13 +230,29 @@ def primary():
             err_vel_x  = [float(row[ERROR_VEL_X])   for row in data]
             derr_vel_x = [float(row[D_ERROR_VEL_X]) for row in data]
 
-        if '-vxcomp' in cmds:
-            actual_vel_x_col = [float(row[DX_COLUMN]) for row in data]
-            desired_vel_x_col = [float(row[DESIRED_VEL_X]) for row in data]
+        # --- collectors ---
+        if '-vycomp' in cmds:
+            # Desired stays as-is; ACTUAL is flipped
+            desired_vel_y_col = np.array([float(row[DESIRED_VEL_Y]) for row in data])
+            actual_vel_y_col  = -np.array([float(row[DY_COLUMN]) for row in data])
 
-        # For desired pitch from CSV (deg) alongside actual pitch in -u or standalone in -dp
-        if '-u' in cmds or '-dp' in cmds:
+        if '-vxcomp' in cmds:
+            # Desired stays as-is; ACTUAL is flipped
+            desired_vel_x_col = np.array([float(row[DESIRED_VEL_X]) for row in data])
+            actual_vel_x_col  = -np.array([float(row[DX_COLUMN]) for row in data])
+
+
+        if ('-u' in cmds or '-dr' in cmds):
             try:
+                #  Read desired roll angle from CSV (already in radians)
+                desired_roll_col = np.array([float(row[DESIRED_ROLL_ANGLE]) for row in data])
+            except Exception:
+                desired_roll_col = None
+
+        # For desired pitch from CSV (radians) alongside actual pitch in -u or standalone in -dp
+        if ('-u' in cmds or '-dp' in cmds):
+            try:
+                #  Read desired pitch angle from CSV (already in radians)
                 desired_pitch_col = np.array([float(row[DESIRED_PITCH_ANGLE]) for row in data])
             except Exception:
                 desired_pitch_col = None
@@ -207,9 +270,19 @@ def primary():
                 else:
                     x_fig, x_ax = plot_2D(t_data, x_data, label ='actual pos')
                     x_ax.scatter(t_data,x_set, label = 'desired pos', s=2)
+                # x_ax.set_xlabel('Time (s)')
+                # x_ax.set_ylabel('X Position (m)')
+                # print('Average x error: ' + str(np.average(abs(error))))
+
+                 # --- Option A: scale Y-axis using only actual data ---
+                rng = np.array(x_data)
+                margin = 0.05 * (rng.max() - rng.min() if rng.max() != rng.min() else 1.0)
+                x_ax.set_ylim(rng.min() - margin, rng.max() + margin)
+
                 x_ax.set_xlabel('Time (s)')
                 x_ax.set_ylabel('X Position (m)')
                 print('Average x error: ' + str(np.average(abs(error))))
+
 
             if cmd == '-y':
                 error = np.array(y_data) - np.array(y_set)
@@ -218,6 +291,15 @@ def primary():
                 else:
                     y_fig, y_ax = plot_2D(t_data, y_data, label='actual pos')
                     y_ax.scatter(t_data,y_set, label = 'desired pos', s=2)
+                # y_ax.set_xlabel('Time (s)')
+                # y_ax.set_ylabel('Y Position (m)')
+                # print('Average y error: ' + str(np.average(abs(error))))
+
+                # --- Option A: scale Y-axis using only actual data ---
+                rng = np.array(y_data)
+                margin = 0.05 * (rng.max() - rng.min() if rng.max() != rng.min() else 1.0)
+                y_ax.set_ylim(rng.min() - margin, rng.max() + margin)
+
                 y_ax.set_xlabel('Time (s)')
                 y_ax.set_ylabel('Y Position (m)')
                 print('Average y error: ' + str(np.average(abs(error))))
@@ -480,40 +562,52 @@ def primary():
                 print('Average error Y: ' + str(np.average(np.abs(error_pos_y))))
                 print('Average error Z: ' + str(np.average(np.abs(error_pos_z))))
 
-            if cmd == '-u':
-                # Read the PWM command values and actual angles
-                roll_u, pitch_u, z_u, yaw_u = zip(*[(float(row[U_ROLL_COLUMN]), float(row[U_PITCH_COLUMN]), float(row[U_Z_COLUMN]), float(row[U_YAW_COLUMN])) for row in data])
-                roll_u = np.array(roll_u)
-                pitch_u = np.array(pitch_u)
-                
-                # Convert PWM values to degrees
-                # PWM range: 1000-2000, center at 1500
-                # If 500 units = -pi radians and -500 units = +pi radians:
-                # Then: (pwm - 1500) maps to angle, where 500 → -π and -500 → +π
-                # So: angle_rad = -(pwm - 1500) * π/500
-                # Or: angle_deg = -(pwm - 1500) * 180/500
-                
-                desired_roll = -(roll_u - 1500) * 180/500
-                desired_pitch = -(pitch_u - 1500) * 180/500
-                
-                # Convert actual angles from radians to degrees
-                pitch_data, roll_data, yaw_data = zip(*[(float(row[13]), float(row[14]), float(row[15])) for row in data])
-                pitch_data = np.array(pitch_data) * 180/np.pi
-                roll_data = np.array(roll_data) * 180/np.pi
+            # if cmd == '-u':
+            #     # print('doing the u')
+            #     x_fig, x_ax = plot_2D(t_data, pitch_data, label ='actual pitch')
+            #     x_ax.scatter(t_data, desired_pitch, label = 'desired pitch', s=2)
+            #     # x_ax.scatter(t_data, commanded_pitch, label = 'pitch cmdd', s=2, c='black')
+            #     x_ax.set_xlabel('Time (s)')
+            #     x_ax.set_ylabel('Pitch (deg)')
 
-                # Plot pitch comparison
-                x_fig, x_ax = plot_2D(t_data, pitch_data, label='actual pitch')
-                x_ax.scatter(t_data, desired_pitch, label='desired pitch', s=2)
+            #     y_fig, y_ax = plot_2D(t_data, roll_data, label ='actual roll')
+            #     y_ax.scatter(t_data, desired_roll, label = 'desired roll', s=2)
+            #     y_ax.set_xlabel('Time (s)')
+            #     y_ax.set_ylabel('Roll (deg)')
+
+            if (cmd == '-u'):
+                # Convert actual pitch and roll from radians to degrees for plotting
+                pitch_data_deg = np.array([float(row[13]) for row in data]) * 180/np.pi
+                roll_data_deg = np.array([float(row[14]) for row in data]) * 180/np.pi
+                
+                # Convert desired angles from control units (-500 to 500) to degrees
+                # -500 to 500 maps to -pi/2 to pi/2 radians, which is -90 to 90 degrees
+                # Formula: degrees = (control_units / 500) * 90
+                
+                if (desired_pitch_col is not None):
+                    desired_pitch_deg = (desired_pitch_col / 500.0) * 90.0
+                else:
+                    desired_pitch_deg = np.zeros_like(pitch_data_deg)
+                
+                
+                if (desired_roll_col is not None):
+                    desired_roll_deg = (desired_roll_col / 500.0) * 90.0
+                else:
+                    desired_roll_deg = np.zeros_like(roll_data_deg)
+                
+                
+                # Plot pitch
+                x_fig, x_ax = plot_2D(t_data, pitch_data_deg, label='actual pitch')
+                x_ax.scatter(t_data, desired_pitch_deg, label='desired pitch', s=2)
                 x_ax.set_xlabel('Time (s)')
                 x_ax.set_ylabel('Pitch (deg)')
-                x_ax.legend()
-
-                # Plot roll comparison
-                y_fig, y_ax = plot_2D(t_data, roll_data, label='actual roll')
-                y_ax.scatter(t_data, desired_roll, label='desired roll', s=2)
+                
+                # Plot roll
+                y_fig, y_ax = plot_2D(t_data, roll_data_deg, label='actual roll')
+                y_ax.scatter(t_data, desired_roll_deg, label='desired roll', s=2)
                 y_ax.set_xlabel('Time (s)')
                 y_ax.set_ylabel('Roll (deg)')
-                y_ax.legend()
+        
 
             # --- Velocity X PID terms: single ---
             if cmd == '-px2':
@@ -572,8 +666,8 @@ def primary():
                 print('Avg |error_vel_x|:', np.average(np.abs(err_vel_x)))
                 print('Avg |d_error_vel_x|:', np.average(np.abs(derr_vel_x)))
 
-            # --- Desired pitch from CSV (deg) next to actual pitch (deg) ---
             if cmd == '-dp':
+                # Convert actual pitch from radians → degrees
                 if 'pitch_data' not in locals():
                     pitch_data = np.array([float(row[13]) for row in data]) * 180/np.pi  # deg
 
@@ -585,41 +679,242 @@ def primary():
                 if desired_pitch_col is None:
                     print('No desired_pitch_angle column available (-dp).')
                 else:
-                    # Detect units (control units vs deg)
+                    # If logged in control units (≈±500), leave it; otherwise convert from degrees.
                     if np.nanmax(np.abs(desired_pitch_col)) <= 520:
-                        desired_pitch_units = desired_pitch_col
+                        desired_pitch_units = desired_pitch_col  # already control units
                     else:
-                        desired_pitch_units = -desired_pitch_col * (500.0/90.0)
+                        # Convert degrees → control units (−90° → −500, +90° → +500)
+                        desired_pitch_units = -desired_pitch_col * (500.0 / 90.0)
 
-                    actual_pitch_units = -pitch_data * (500.0/90.0)
+                    # Convert actual pitch from degrees → control units
+                    actual_pitch_units = -pitch_data * (500.0 / 90.0)
 
                     fig, ax = plot_2D(t_data, actual_pitch_units, label='actual pitch (control units)')
                     ax.scatter(t_data, desired_pitch_units, label='desired pitch (control units)', s=2)
                     ax.set_xlabel('Time (s)')
-                    ax.set_ylabel('Pitch (control units)')
+                    ax.set_ylabel('Pitch (−500…+500)')
                     ax.legend()
                     ax.set_title('Desired vs Actual Pitch (control units)')
 
-                    # --- AUTO ZOOM based on data range ---
+                    # --- AUTO ZOOM based on actual data range ---
                     all_vals = np.concatenate([desired_pitch_units, actual_pitch_units])
                     min_y, max_y = np.nanmin(all_vals), np.nanmax(all_vals)
                     y_margin = 0.1 * (max_y - min_y if max_y != min_y else 10)
                     ax.set_ylim([min_y - y_margin, max_y + y_margin])
 
+                
 
-
+            # --- Desired vs Actual Velocity X ---
             if cmd == '-vxcomp':
-                # Negate one of them to match coordinate frames
                 fig, ax = plot_2D(t_data, desired_vel_x_col, label='Desired Vel X')
-                ax.scatter(t_data, [-v for v in actual_vel_x_col], label='Actual Vel X (dx)', s=2, c='orange')
-                # OR alternatively:
-                # fig, ax = plot_2D(t_data, [-v for v in desired_vel_x_col], label='Desired Vel X')
-                # ax.scatter(t_data, actual_vel_x_col, label='Actual Vel X (dx)', s=2, c='orange')
+                ax.scatter(t_data, actual_vel_x_col, label='Actual Vel X (dx, flipped)', s=2)
                 ax.set_xlabel('Time (s)')
                 ax.set_ylabel('Velocity X (m/s)')
                 ax.legend()
                 ax.set_title('Desired vs Actual Velocity X')
 
+                all_vals = np.concatenate([desired_vel_x_col, actual_vel_x_col])
+                min_y, max_y = np.nanmin(all_vals), np.nanmax(all_vals)
+                y_margin = 0.1 * (max_y - min_y if max_y != min_y else 1.0)
+                ax.set_ylim([min_y - y_margin, max_y + y_margin])
+
+                print('Avg |desired_vel_x|:', np.average(np.abs(desired_vel_x_col)))
+                print('Avg |actual_vel_x|:',  np.average(np.abs(actual_vel_x_col)))
+
+            # --- Desired vs Actual Velocity Y ---
+            if cmd == '-vycomp':
+                fig, ax = plot_2D(t_data, desired_vel_y_col, label='Desired Vel Y')
+                ax.scatter(t_data, actual_vel_y_col, label='Actual Vel Y (dy, flipped)', s=2)
+                ax.set_xlabel('Time (s)')
+                ax.set_ylabel('Velocity Y (m/s)')
+                ax.legend()
+                ax.set_title('Desired vs Actual Velocity Y')
+
+                all_vals = np.concatenate([desired_vel_y_col, actual_vel_y_col])
+                min_y, max_y = np.nanmin(all_vals), np.nanmax(all_vals)
+                y_margin = 0.1 * (max_y - min_y if max_y != min_y else 1.0)
+                ax.set_ylim([min_y - y_margin, max_y + y_margin])
+
+                print('Avg |desired_vel_y|:', np.average(np.abs(desired_vel_y_col)))
+                print('Avg |actual_vel_y|:',  np.average(np.abs(actual_vel_y_col)))
+
+
+
+            # ========== Y-DIRECTION POSITION CONTROLLER PLOTS ==========
+            if cmd == '-py':
+                fig_p = plt.figure()
+                ax_p = fig_p.add_subplot()
+                ax_p.scatter(t_data, p_term_y, label='P term', s=2, c='blue')
+                ax_p.set_xlabel('Time (s)')
+                ax_p.set_ylabel('P Term (m/s)')
+                ax_p.legend()
+                ax_p.set_title('P Term for Y Position')
+                print('Average P term Y: ' + str(np.average(np.abs(p_term_y))))
+                
+            if cmd == '-iy':
+                fig_i = plt.figure()
+                ax_i = fig_i.add_subplot()
+                ax_i.scatter(t_data, i_term_y, label='I term', s=2, c='orange')
+                ax_i.set_xlabel('Time (s)')
+                ax_i.set_ylabel('I Term (m/s)')
+                ax_i.legend()
+                ax_i.set_title('I Term for Y Position')
+                print('Average I term Y: ' + str(np.average(np.abs(i_term_y))))
+                
+            if cmd == '-dy':
+                fig_d = plt.figure()
+                ax_d = fig_d.add_subplot()
+                ax_d.scatter(t_data, d_term_y, label='D term', s=2, c='green')
+                ax_d.set_xlabel('Time (s)')
+                ax_d.set_ylabel('D Term (m/s)')
+                ax_d.legend()
+                ax_d.set_title('D Term for Y Position')
+                print('Average D term Y: ' + str(np.average(np.abs(d_term_y))))
+                
+            if cmd == '-vy':
+                fig_vel = plt.figure()
+                ax_vel = fig_vel.add_subplot()
+                ax_vel.scatter(t_data, desired_vel_y, label='Desired velocity Y', s=2, c='red')
+                ax_vel.set_xlabel('Time (s)')
+                ax_vel.set_ylabel('Velocity (m/s)')
+                ax_vel.legend()
+                ax_vel.set_title('Desired Y Velocity')
+                print('Average desired velocity Y: ' + str(np.average(np.abs(desired_vel_y))))
+                
+            if cmd == '-piy':
+                fig_pi = plt.figure()
+                ax_pi = fig_pi.add_subplot()
+                ax_pi.scatter(t_data, p_term_y, label='P term', s=2, c='blue')
+                ax_pi.scatter(t_data, i_term_y, label='I term', s=2, c='orange')
+                ax_pi.set_xlabel('Time (s)')
+                ax_pi.set_ylabel('Control Term Value (m/s)')
+                ax_pi.legend()
+                ax_pi.set_title('P and I Terms for Y Position')
+                
+            if cmd == '-pdy':
+                fig_pd = plt.figure()
+                ax_pd = fig_pd.add_subplot()
+                ax_pd.scatter(t_data, p_term_y, label='P term', s=2, c='blue')
+                ax_pd.scatter(t_data, d_term_y, label='D term', s=2, c='green')
+                ax_pd.set_xlabel('Time (s)')
+                ax_pd.set_ylabel('Control Term Value (m/s)')
+                ax_pd.legend()
+                ax_pd.set_title('P and D Terms for Y Position')
+                
+            if cmd == '-idy':
+                fig_id = plt.figure()
+                ax_id = fig_id.add_subplot()
+                ax_id.scatter(t_data, i_term_y, label='I term', s=2, c='orange')
+                ax_id.scatter(t_data, d_term_y, label='D term', s=2, c='green')
+                ax_id.set_xlabel('Time (s)')
+                ax_id.set_ylabel('Control Term Value (m/s)')
+                ax_id.legend()
+                ax_id.set_title('I and D Terms for Y Position')
+                
+            if cmd == '-pidy':
+                fig_pid = plt.figure()
+                ax_pid = fig_pid.add_subplot()
+                ax_pid.scatter(t_data, p_term_y, label='P term', s=2, c='blue')
+                ax_pid.scatter(t_data, i_term_y, label='I term', s=2, c='orange')
+                ax_pid.scatter(t_data, d_term_y, label='D term', s=2, c='green')
+                ax_pid.set_xlabel('Time (s)')
+                ax_pid.set_ylabel('Control Term Value (m/s)')
+                ax_pid.legend()
+                ax_pid.set_title('PID Terms for Y Position')
+                print('Average P term Y: ' + str(np.average(np.abs(p_term_y))))
+                print('Average I term Y: ' + str(np.average(np.abs(i_term_y))))
+                print('Average D term Y: ' + str(np.average(np.abs(d_term_y))))
+
+            # ========== Y-DIRECTION VELOCITY CONTROLLER PLOTS ==========
+            if cmd == '-py2':
+                fig, ax = plot_2D(t_data, v_p_y, label='Vy P')
+                ax.set_xlabel('Time (s)'); ax.set_ylabel('Velocity P Term')
+                ax.legend(); ax.set_title('Velocity-Y: P term')
+                print('Avg |Vy P|:', np.average(np.abs(v_p_y)))
+
+            if cmd == '-iy2':
+                fig, ax = plot_2D(t_data, v_i_y, label='Vy I')
+                ax.set_xlabel('Time (s)'); ax.set_ylabel('Velocity I Term')
+                ax.legend(); ax.set_title('Velocity-Y: I term')
+                print('Avg |Vy I|:', np.average(np.abs(v_i_y)))
+
+            if cmd == '-dy2':
+                fig, ax = plot_2D(t_data, v_d_y, label='Vy D')
+                ax.set_xlabel('Time (s)'); ax.set_ylabel('Velocity D Term')
+                ax.legend(); ax.set_title('Velocity-Y: D term')
+                print('Avg |Vy D|:', np.average(np.abs(v_d_y)))
+
+            if cmd == '-piy2':
+                fig, ax = plot_2D(t_data, v_p_y, label='Vy P')
+                ax.scatter(t_data, v_i_y, label='Vy I', s=2)
+                ax.set_xlabel('Time (s)'); ax.set_ylabel('Velocity Terms'); ax.legend()
+                ax.set_title('Velocity-Y: P & I')
+
+            if cmd == '-pdy2':
+                fig, ax = plot_2D(t_data, v_p_y, label='Vy P')
+                ax.scatter(t_data, v_d_y, label='Vy D', s=2)
+                ax.set_xlabel('Time (s)'); ax.set_ylabel('Velocity Terms'); ax.legend()
+                ax.set_title('Velocity-Y: P & D')
+
+            if cmd == '-idy2':
+                fig, ax = plot_2D(t_data, v_i_y, label='Vy I')
+                ax.scatter(t_data, v_d_y, label='Vy D', s=2)
+                ax.set_xlabel('Time (s)'); ax.set_ylabel('Velocity Terms'); ax.legend()
+                ax.set_title('Velocity-Y: I & D')
+
+            if cmd == '-pidy2':
+                fig, ax = plot_2D(t_data, v_p_y, label='Vy P')
+                ax.scatter(t_data, v_i_y, label='Vy I', s=2)
+                ax.scatter(t_data, v_d_y, label='Vy D', s=2)
+                ax.set_xlabel('Time (s)'); ax.set_ylabel('Velocity Terms'); ax.legend()
+                ax.set_title('Velocity-Y: PID')
+                print('Avg |Vy P|:', np.average(np.abs(v_p_y)))
+                print('Avg |Vy I|:', np.average(np.abs(v_i_y)))
+                print('Avg |Vy D|:', np.average(np.abs(v_d_y)))
+
+            if cmd == '-ev2y':
+                fig, ax = plot_2D(t_data, err_vel_y_col, label='error_vel_y')
+                ax.scatter(t_data, derr_vel_y_col, label='d_error_vel_y', s=2)
+                ax.set_xlabel('Time (s)'); ax.set_ylabel('Velocity Error (m/s)')
+                ax.legend(); ax.set_title('Velocity-Y Errors')
+                print('Avg |error_vel_y|:', np.average(np.abs(err_vel_y_col)))
+                print('Avg |d_error_vel_y|:', np.average(np.abs(derr_vel_y_col)))
+
+            if cmd == '-dr':
+                # Convert actual roll from radians → degrees (once)
+                if 'roll_data' not in locals():
+                    roll_data = np.array([float(row[14]) for row in data]) * 180/np.pi  # deg
+
+                try:
+                    desired_roll_col = np.array([float(row[DESIRED_ROLL_ANGLE]) for row in data])
+                except Exception:
+                    desired_roll_col = None
+
+                if desired_roll_col is None:
+                    print('No desired_roll_angle column available (-dr).')
+                else:
+                    # If desired already in control units (≈±500), keep; else convert degrees→control units.
+                    if np.nanmax(np.abs(desired_roll_col)) <= 520:
+                        desired_roll_units = desired_roll_col  # already control units
+                    else:
+                        # Map deg to control units with sign convention (−90°→+500, +90°→−500)
+                        desired_roll_units = -desired_roll_col * (500.0 / 90.0)
+
+                    # Actual roll: degrees → control units, and FLIP sign (you said actual is flipped)
+                    actual_roll_units = -roll_data * (500.0 / 90.0)
+
+                    fig, ax = plot_2D(t_data, actual_roll_units, label='actual roll (control units)')
+                    ax.scatter(t_data, desired_roll_units, label='desired roll (control units)', s=2)
+                    ax.set_xlabel('Time (s)')
+                    ax.set_ylabel('Roll (−500…+500)')
+                    ax.legend()
+                    ax.set_title('Desired vs Actual Roll (control units)')
+
+                    # Auto-zoom based on data range
+                    all_vals = np.concatenate([desired_roll_units, actual_roll_units])
+                    min_y, max_y = np.nanmin(all_vals), np.nanmax(all_vals)
+                    y_margin = 0.1 * (max_y - min_y if max_y != min_y else 10)
+                    ax.set_ylim([min_y - y_margin, max_y + y_margin])
                 
 
 
