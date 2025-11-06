@@ -111,7 +111,7 @@ def primary():
             d_term_y = [float(row[D_TERM_POS_Y]) for row in data]
             desired_vel_y = [float(row[DESIRED_VEL_Y]) for row in data]
 
-        if '-x' in cmds or '-y' in cmds or '-z' in cmds or '-k' in cmds or '-3D' in cmds:
+        if '-x' in cmds or '-y' in cmds or '-z' in cmds or '-k' in cmds or '-3D' in cmds or '-ss' in cmds:
 
             #parse x, y, z and x, y, z, setpoint data (at minimum. may parse more later)
             # Convert necessary columns to float
@@ -141,7 +141,7 @@ def primary():
             d_term_x = [float(row[D_TERM_POS_X]) for row in data]
             desired_vel_x = [float(row[DESIRED_VEL_X]) for row in data]
 
-        if '-ep' in cmds:
+        if '-ep' in cmds or '-ss' in cmds:  # Modified to include -ss
             error_pos_x = [float(row[ERROR_POS_X]) for row in data]
             error_pos_y = [float(row[ERROR_POS_Y]) for row in data]
             error_pos_z = [float(row[ERROR_POS_Z]) for row in data]
@@ -192,6 +192,29 @@ def primary():
                     data_start_index = i
                     break
         
+        # data_end_index = False
+        # if '-d' in cmds:
+        #     index_of_end = cmds.index('-d')
+        #     end_time = float(cmds[index_of_end + 1])
+
+        #     for i,t in enumerate(t_data):
+        #         if t < end_time:
+        #             continue
+        #         else:
+        #             data_end_index = i - 1
+        #             break
+
+        #     x_data = x_data[data_start_index:data_end_index]
+        #     y_data = y_data[data_start_index:data_end_index]
+        #     z_data = z_data[data_start_index:data_end_index]
+        #     t_data = t_data[data_start_index:data_end_index]
+        #     x_set = x_set[data_start_index:data_end_index]
+        #     y_set = y_set[data_start_index:data_end_index]
+        #     z_set = z_set[data_start_index:data_end_index]
+        #     x_kf = x_kf[data_start_index:data_end_index]
+        #     y_kf = y_kf[data_start_index:data_end_index]
+        #     z_kf = z_kf[data_start_index:data_end_index]
+
         data_end_index = False
         if '-d' in cmds:
             index_of_end = cmds.index('-d')
@@ -211,9 +234,12 @@ def primary():
             x_set = x_set[data_start_index:data_end_index]
             y_set = y_set[data_start_index:data_end_index]
             z_set = z_set[data_start_index:data_end_index]
-            x_kf = x_kf[data_start_index:data_end_index]
-            y_kf = y_kf[data_start_index:data_end_index]
-            z_kf = z_kf[data_start_index:data_end_index]
+            
+            # Only slice KF data if it was loaded
+            if '-k' in cmds:
+                x_kf = x_kf[data_start_index:data_end_index]
+                y_kf = y_kf[data_start_index:data_end_index]
+                z_kf = z_kf[data_start_index:data_end_index]
 
         if any(flag in cmds for flag in ['-py2','-iy2','-dy2','-piy2','-pdy2','-idy2','-pidy2','-ev2y']):
             v_p_y = [float(row[P_TERM_VEL_Y]) for row in data]
@@ -574,6 +600,79 @@ def primary():
             #     y_ax.scatter(t_data, desired_roll, label = 'desired roll', s=2)
             #     y_ax.set_xlabel('Time (s)')
             #     y_ax.set_ylabel('Roll (deg)')
+
+            if cmd == '-ss':  # Steady-state analysis for multiple setpoints
+                # Detect regions where setpoint is constant
+                setpoint_threshold = 0.001  # meters - threshold for "no change"
+                settling_time = 2.0  # seconds to wait after setpoint change
+                
+                # Find all setpoint change indices
+                setpoint_changes = [0]  # Start of first region
+                for i in range(1, len(x_set)):
+                    dx_set = abs(x_set[i] - x_set[i-1])
+                    dy_set = abs(y_set[i] - y_set[i-1])
+                    dz_set = abs(z_set[i] - z_set[i-1])
+                    
+                    if dx_set > setpoint_threshold or dy_set > setpoint_threshold or dz_set > setpoint_threshold:
+                        setpoint_changes.append(i)
+                
+                setpoint_changes.append(len(x_set))  # End of last region
+                
+                # Analyze each steady-state region
+                num_regions = len(setpoint_changes) - 1
+                print(f'\n=== STEADY-STATE ERROR ANALYSIS ===')
+                print(f'Found {num_regions} setpoint region(s)\n')
+                
+                for region_idx in range(num_regions):
+                    start_idx = setpoint_changes[region_idx]
+                    end_idx = setpoint_changes[region_idx + 1]
+                    
+                    # Skip regions that are too short
+                    region_duration = t_data[end_idx-1] - t_data[start_idx]
+                    if region_duration < settling_time + 0.5:  # Need at least settling time + 0.5s of data
+                        print(f'Region {region_idx + 1}: Too short ({region_duration:.2f}s) - skipping')
+                        continue
+                    
+                    # Find settling time index within this region
+                    settling_time_abs = t_data[start_idx] + settling_time
+                    steady_indices = [i for i in range(start_idx, end_idx) if t_data[i] > settling_time_abs]
+                    
+                    if len(steady_indices) == 0:
+                        print(f'Region {region_idx + 1}: No data after settling - skipping')
+                        continue
+                    
+                    # Calculate steady-state errors for this region
+                    ss_error_x = [error_pos_x[i] for i in steady_indices]
+                    ss_error_y = [error_pos_y[i] for i in steady_indices]
+                    ss_error_z = [error_pos_z[i] for i in steady_indices]
+                    
+                    # Get setpoint for this region
+                    region_setpoint_x = x_set[start_idx]
+                    region_setpoint_y = y_set[start_idx]
+                    region_setpoint_z = z_set[start_idx]
+                    
+                    print(f'--- Region {region_idx + 1} ---')
+                    print(f'Setpoint: ({region_setpoint_x:.3f}, {region_setpoint_y:.3f}, {region_setpoint_z:.3f}) m')
+                    print(f'Time: {t_data[start_idx]:.2f}s to {t_data[end_idx-1]:.2f}s ({region_duration:.2f}s total)')
+                    print(f'Steady-state samples: {len(steady_indices)} (after {settling_time:.1f}s settling)\n')
+                    
+                    print(f'X-axis:')
+                    print(f'  Mean error: {np.mean(ss_error_x):+.4f} m')
+                    print(f'  Std Dev: {np.std(ss_error_x):.4f} m')
+                    print(f'  RMS error: {np.sqrt(np.mean(np.square(ss_error_x))):.4f} m')
+                    print(f'  Range: [{np.min(ss_error_x):+.4f}, {np.max(ss_error_x):+.4f}] m')
+                    
+                    print(f'Y-axis:')
+                    print(f'  Mean error: {np.mean(ss_error_y):+.4f} m')
+                    print(f'  Std Dev: {np.std(ss_error_y):.4f} m')
+                    print(f'  RMS error: {np.sqrt(np.mean(np.square(ss_error_y))):.4f} m')
+                    print(f'  Range: [{np.min(ss_error_y):+.4f}, {np.max(ss_error_y):+.4f}] m')
+                    
+                    print(f'Z-axis:')
+                    print(f'  Mean error: {np.mean(ss_error_z):+.4f} m')
+                    print(f'  Std Dev: {np.std(ss_error_z):.4f} m')
+                    print(f'  RMS error: {np.sqrt(np.mean(np.square(ss_error_z))):.4f} m')
+                    print(f'  Range: [{np.min(ss_error_z):+.4f}, {np.max(ss_error_z):+.4f}] m\n')
 
             if (cmd == '-u'):
                 # Convert actual pitch and roll from radians to degrees for plotting
