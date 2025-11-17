@@ -26,7 +26,7 @@
 #define UDELTA 200 //MAX control limit +/- 1500 for x, y, and yaw
 #define MAX_Z_U 2000
 #define MIN_Z_U 900
-#define MINI_DELTA 100 //limit on how different a control value can be from the previou value
+#define MINI_DELTA 50 //limit on how different a control value can be from the previou value
 #define SHARED_MEMORY_NAME "MySharedMemory"
 #define DATA_SIZE 150  // Total size of shared memory (in bytes)
 #define MAX_VELO 0.125 //meters per second
@@ -568,7 +568,7 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
   // Initialize gains for VELOCITY controller
   // y dir
   float Kp_vel_y = 200.0;
-  float Ki_vel_y = 0.5;
+  float Ki_vel_y = 0.8;
   float Kd_vel_y = 0.0;
   float P_term_vel_y = 0.0; 
   float I_term_vel_y = 0.0;
