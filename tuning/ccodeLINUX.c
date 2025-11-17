@@ -26,7 +26,7 @@
 #define UDELTA 200 //MAX control limit +/- 1500 for x, y, and yaw
 #define MAX_Z_U 2000
 #define MIN_Z_U 900
-#define MINI_DELTA 50 //limit on how different a control value can be from the previou value
+#define MINI_DELTA 100 //limit on how different a control value can be from the previou value
 #define SHARED_MEMORY_NAME "MySharedMemory"
 #define DATA_SIZE 150  // Total size of shared memory (in bytes)
 #define MAX_VELO 0.125 //meters per second
@@ -54,14 +54,6 @@
 #define SLOW_MSGS_LOOP_TIME 200000000 //nano seconds (should be 0.2s or 200 million nano seconds)
 #define FC_WARM_UP_TIME 5 //seconds
 
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
-
-float test_start_time = 10.0;  // Start the sinusoidal test after 10 seconds
-float sine_amplitude = 0.1;     // Amplitude of sinusoidal velocity (m/s)
-float sine_frequency = 0.5;     // Frequency in Hz (0.5 Hz = 2 second period)
-uint8_t enable_velocity_test = 1;  // Set to 1 to enable test, 0 to disable
 
 //DEVELOPERS NOTE: IF you need to reset the board, send this: send_msp_command(fserial, MSP_SET_REBOOT, NULL, 0);
 
@@ -539,8 +531,8 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
 
   // Initialize gains for POSITION controller
   // x dir
-  float Kp_pos_x = 2.3;
-  float Ki_pos_x = 0.005;
+  float Kp_pos_x = 2.2;
+  float Ki_pos_x = 0.002;
   float Kd_pos_x = 1.1;
   float P_term_pos_x = 0.0; 
   float I_term_pos_x = 0.0;
@@ -548,12 +540,10 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
   float desired_velocity_x = 0.0;
   float error_pos_x = 0.0;
 
-  static uint8_t sine_test_initialized = FALSE;
-
   // Initialize gains for VELOCITY controller
   // x dir
-  float Kp_vel_x = 2.0 * 100;
-  float Ki_vel_x = 0.0008 * 100;
+  float Kp_vel_x = 200.0;
+  float Ki_vel_x = 0.8;
   float Kd_vel_x = 0;
   float P_term_vel_x = 0.0; 
   float I_term_vel_x = 0.0;
@@ -566,8 +556,8 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
 
   // Initialize gains for POSITION controller
   // y dir
-  float Kp_pos_y = 2.0;
-  float Ki_pos_y = 0.001;
+  float Kp_pos_y = 2.5;
+  float Ki_pos_y = 0.0;
   float Kd_pos_y = 1.2;
   float P_term_pos_y = 0.0;
   float I_term_pos_y = 0.0;
@@ -577,8 +567,8 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
   
   // Initialize gains for VELOCITY controller
   // y dir
-  float Kp_vel_y = 220;
-  float Ki_vel_y = 0.3;
+  float Kp_vel_y = 200.0;
+  float Ki_vel_y = 0.5;
   float Kd_vel_y = 0.0;
   float P_term_vel_y = 0.0; 
   float I_term_vel_y = 0.0;
@@ -587,6 +577,8 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
 
   float d_error_vel_y = 0.0;
   float desired_roll_angle = 0.0;
+  // NEW** END
+
   
   //Integral terms
   float integral_x = 0.0, integral_y = 0.0, integral_z = 0.0;
@@ -1202,14 +1194,11 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
       //get voltage and power
       //TODO
 
-      
+
       //If the user wants the controller turned on, execute the control loop.
       if (*shared_controller_status == 1)
       {
-        // if (received_time - *user_code_start_time > 12 && received_time - *user_code_start_time < 15) {
-        //     fprintf(clog_fptr, "LOOP START: lastpitch_u=%d\n", lastpitch_u);
-        //     fflush(clog_fptr);
-        // }
+
         // printf("The system is armed. Getting commands.\r\n");
         
         //Get the desired state, IFF the lock is available
@@ -1357,28 +1346,6 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
 
           desired_velocity_y = P_term_pos_y + I_term_pos_y + D_term_pos_y;
 
-          // **NEW: Override desired_velocity_x with sinusoidal test input**
-          if (enable_velocity_test && (received_time - *user_code_start_time) > test_start_time) {
-              float test_time = received_time - *user_code_start_time - test_start_time;
-              desired_velocity_x = sine_amplitude * sin(2.0 * M_PI * sine_frequency * test_time);
-              
-              // Reset integrals ONLY ONCE at the very start of the test
-              if (!sine_test_initialized) {
-                  integral_x = 0.0;
-                  integral_y = 0.0;
-                  integral_vel_x = 0.0;
-                  integral_vel_y = 0.0;
-                  sine_test_initialized = TRUE;
-                  
-                  fprintf(clog_fptr, "Sine test started - integrals reset\n");
-                  fflush(clog_fptr);
-              }
-          } else {
-            // Normal position control for x
-            desired_velocity_x = P_term_pos_x + I_term_pos_x + D_term_pos_x;
-            sine_test_initialized = FALSE;
-          }
-
           // transform desired velocities from WORLD frame to DRONE frame
           float desired_velocity_x_drone = desired_velocity_x * x_comp + desired_velocity_y * y_comp;
           float desired_velocity_y_drone = -desired_velocity_x * y_comp + desired_velocity_y * x_comp;
@@ -1402,86 +1369,26 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
           // Y-dir
           // use the DRONE frame velocities for velocity controller
           error_vel_y = desired_velocity_y_drone - dy_drone;
-
-          // Calculate raw integral (before limiting)
-          float raw_integral_vel_y = integral_vel_y + error_vel_y;
-
           integral_vel_y += error_vel_y;
-
-          // // ANTI-WINDUP: Limit integral term
-          // float integral_limit_y = 50.0;
-          // if (raw_integral_vel_y > integral_limit_y) {
-          //     integral_vel_y = integral_limit_y;
-          // } else if (raw_integral_vel_y < -integral_limit_y) {
-          //     integral_vel_y = -integral_limit_y;
-          // } else {
-          //     integral_vel_y = raw_integral_vel_y;  // Accept the new integral value
-          // }
-
           d_error_vel_y = (error_vel_y - last_error_vel_y) / dt;
 
           P_term_vel_y = Kp_vel_y * error_vel_y; 
           I_term_vel_y = Ki_vel_y * integral_vel_y;
           D_term_vel_y = Kd_vel_y * d_error_vel_y;
 
-          // if (received_time - *user_code_start_time > 12 && received_time - *user_code_start_time < 15) {
-          //     fprintf(clog_fptr, "desired_vel_x=%f, dx_drone=%f, error_vel_x=%f\n", 
-          //             desired_velocity_x_drone, dx_drone, error_vel_x);
-          //     fprintf(clog_fptr, "P_term_vel_x=%f, desired_pitch=%f\n", 
-          //             P_term_vel_x, desired_pitch_angle);
-          //     fflush(clog_fptr);
-          // }
-          
           desired_pitch_angle = P_term_vel_x + I_term_vel_x + D_term_vel_x;          
           desired_roll_angle = -(P_term_vel_y + I_term_vel_y + D_term_vel_y); // negate since negative pitch (ie. -200) goes forward in y dir
-
-          // Clamp desired_roll_angle BEFORE filtering to prevent windup
-          // float max_roll_cmd = 200.0;
-          // if (desired_roll_angle > max_roll_cmd) {
-          //   desired_roll_angle = max_roll_cmd;
-          //   // Back-calculate to prevent integral windup
-          //   integral_vel_y -= error_vel_y * dt;  // Undo the integration that caused saturation
-          // } else if (desired_roll_angle < -max_roll_cmd) {
-          //   desired_roll_angle = -max_roll_cmd;
-          //   integral_vel_y -= error_vel_y * dt;
-          // }
 
           filtered_desired_pitch = (1-alpha)*filtered_desired_pitch + alpha*desired_pitch_angle;
           filtered_desired_roll = (1-alpha)*filtered_desired_roll + alpha*desired_roll_angle;
 
-          // ========== CONFIG ==========
-          const float MAX_ANGLE_DEG = 55.0f;      // match Betaflight "max_angle"
-          const float DEG2US_ANGLE  = 500.0f / MAX_ANGLE_DEG;  // µs per degree
-          const int16_t MIN_EFFECTIVE_US = 12;    // beat FC deadband
-          const int16_t MAX_OFFSET_US    = 500;   // safety clamp
-
-          // After computing filtered_desired_pitch/roll (in DEGREES):
-          int16_t pitch_off = (int16_t)(filtered_desired_pitch * DEG2US_ANGLE);
-          int16_t roll_off  = (int16_t)(filtered_desired_roll  * DEG2US_ANGLE);
-
-          // Nudge tiny commands out of deadband (optional)
-          // if (pitch_off > 0 && pitch_off <  MIN_EFFECTIVE_US) pitch_off =  MIN_EFFECTIVE_US;
-          // if (pitch_off < 0 && pitch_off > -MIN_EFFECTIVE_US) pitch_off = -MIN_EFFECTIVE_US;
-          // if (roll_off  > 0 && roll_off  <  MIN_EFFECTIVE_US) roll_off  =  MIN_EFFECTIVE_US;
-          // if (roll_off  < 0 && roll_off  > -MIN_EFFECTIVE_US) roll_off  = -MIN_EFFECTIVE_US;
-
-          // Clamp to [-500, 500]
-          if (pitch_off >  MAX_OFFSET_US) pitch_off =  MAX_OFFSET_US;
-          if (pitch_off < -MAX_OFFSET_US) pitch_off = -MAX_OFFSET_US;
-          if (roll_off  >  MAX_OFFSET_US) roll_off  =  MAX_OFFSET_US;
-          if (roll_off  < -MAX_OFFSET_US) roll_off  = -MAX_OFFSET_US;
-
-
-          if (received_time - *user_code_start_time > 12 && received_time - *user_code_start_time < 15.1) {
-              fprintf(clog_fptr,
-                      "desired_roll_angle: %.3f, desired_pitch_angle: %.3f\n"
-                      "filtered_desired_roll: %.3f, filtered_desired_pitch: %.3f\n"
-                      "roll_off: %d, pitch_off: %d\n",
-                      (double)desired_roll_angle, (double)desired_pitch_angle,
-                      (double)filtered_desired_roll, (double)filtered_desired_pitch,
-                      (int)roll_off, (int)pitch_off);
-              fflush(clog_fptr);
-          }
+          // Log after filtering
+          fprintf(clog_fptr, "%d.%.3ld: Filtered outputs - pitch: %.2f, roll: %.2f\r\n", 
+                  (int)loop_start_time.tv_sec, 
+                  loop_start_time.tv_nsec/1000000,
+                  filtered_desired_pitch, 
+                  filtered_desired_roll);
+          fflush(clog_fptr);
 
           //THis is essentially matrix multiplication of the error vector times the K vecor, just written out ahead of time
           //with the values that would compute to zero as zero, assuming a desired 0 velocity and 0 roll, pitch
@@ -1494,28 +1401,16 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
           uw = -1*uw;
 
           //Convert the LQR commands into integer values from 1000 to 2000 around 1500
-          // Convert to RC µs
-          pitch_u = 1500 + pitch_off;
-          roll_u  = 1500 + roll_off;
-
-          // pitch_u = (int16_t) filtered_desired_pitch + 1500;
-          // roll_u = (int16_t) filtered_desired_roll + 1500;
+          pitch_u = (int16_t) filtered_desired_pitch + 1500;
+          roll_u = (int16_t) filtered_desired_roll + 1500;
           z_u = (int16_t) (100*uz + 1500);
           yaw_u = (int16_t) (100*uw + 1500);
 
-          // if (received_time - *user_code_start_time > 12 && received_time - *user_code_start_time < 15.1) {
-          //     fprintf(clog_fptr, "Roll command: %d, Pitch command: %d\n", roll_u, pitch_u);
-          //     fprintf(clog_fptr, "Actual roll: %f, Actual pitch: %f\n", roll, pitch);
-          //     fflush(clog_fptr);
-          // }
-
-          // if (received_time - *user_code_start_time > 10) {
-          //     roll_u = 1600;  // Constant +100 command
-          //     pitch_u = 1500;
-          //     fprintf(clog_fptr, "Time: %f, Commanded roll: %d, Actual roll: %f, dy: %f\n", 
-          //             received_time, roll_u, roll, dy);
-          //     fflush(clog_fptr);
-          // }
+          fprintf(clog_fptr, "%d.%.3ld: PWM commands - pitch_u: %d (filtered: %.2f)\r\n", 
+          (int)loop_start_time.tv_sec, 
+          loop_start_time.tv_nsec/1000000,
+          pitch_u,
+          filtered_desired_pitch);
 
           //Add in the integral terms and any hover terms
           // pitch_u = pitch_u + (int16_t)(integral_x*x_comp) + (uint16_t)((-1)*integral_y*y_comp);
@@ -1778,12 +1673,7 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
 
       //Record the last control values so we are ready for the next loop.
       lastroll_u = roll_u; lastpitch_u = pitch_u; lastz_u = z_u; lastyaw_u = yaw_u;
-
-      // if (received_time - *user_code_start_time > 12 && received_time - *user_code_start_time < 15) {
-      //     fprintf(clog_fptr, "SAVED: lastpitch_u=%d, pitch_u=%d\n", lastpitch_u, pitch_u);
-      //     fflush(clog_fptr);
-      // }
-
+      
     }//end if run c
     else // case where flyer is not getting data to run controller.
     {
