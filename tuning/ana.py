@@ -940,74 +940,63 @@ def primary():
                 print('Avg |error_vel_y|:', np.average(np.abs(err_vel_y_col)))
                 print('Avg |d_error_vel_y|:', np.average(np.abs(derr_vel_y_col)))
 
-            # For -dp:
-            if cmd == '-dp':
-                if 'pitch_data' not in locals():
-                    # Column 13 is pitch in RADIANS
-                    pitch_data_rad = np.array([float(row[13]) for row in data])
-                
+            if cmd == '-dp':  # Desired vs Commanded Pitch
                 try:
-                    # Column 48: desired pitch in control units (±500)
+                    # Desired pitch angle in control units (±500)
                     desired_pitch_col = np.array([float(row[DESIRED_PITCH_ANGLE]) for row in data])
-                except Exception:
-                    desired_pitch_col = None
-                
-                if desired_pitch_col is None:
-                    print('No desired_pitch_angle column available (-dp).')
-                else:
-                    # Desired is already in control units
-                    desired_pitch_units = desired_pitch_col
+                    # Actual PWM command sent
+                    pitch_u = np.array([float(row[U_PITCH_COLUMN]) for row in data])
                     
-                    # Convert actual from radians to degrees, then to control units
-                    # Mapping: ±π/2 rad = ±90° = ±500 control units
-                    actual_pitch_deg = pitch_data_rad * 180/np.pi
-                    actual_pitch_units = actual_pitch_deg * (500.0 / 90.0)
+                    # Convert desired from ±500 to PWM range (1000-2000)
+                    desired_pitch_pwm = desired_pitch_col + 1500
                     
-                    fig, ax = plot_2D(t_data, actual_pitch_units, label='actual pitch (control units)')
-                    ax.scatter(t_data, desired_pitch_units, label='desired pitch (control units)', s=2)
+                    fig, ax = plot_2D(t_data, pitch_u, label='Commanded pitch PWM')
+                    ax.scatter(t_data, desired_pitch_pwm, label='Desired pitch PWM', s=2)
                     ax.set_xlabel('Time (s)')
-                    ax.set_ylabel('Pitch (control units)')
+                    ax.set_ylabel('Pitch PWM (1000-2000)')
+                    ax.set_title('Desired vs Commanded Pitch')
                     ax.legend()
                     
                     # Auto zoom
-                    all_vals = np.concatenate([desired_pitch_units, actual_pitch_units])
+                    all_vals = np.concatenate([pitch_u, desired_pitch_pwm])
                     min_y, max_y = np.nanmin(all_vals), np.nanmax(all_vals)
                     y_margin = 0.1 * (max_y - min_y if max_y != min_y else 10)
                     ax.set_ylim([min_y - y_margin, max_y + y_margin])
+                    
+                    print(f'Avg desired pitch PWM: {np.mean(desired_pitch_pwm):.1f}')
+                    print(f'Avg commanded pitch PWM: {np.mean(pitch_u):.1f}')
+                    
+                except Exception as e:
+                    print(f'Error plotting -dp: {e}')
 
-            # For -dr:
-            if cmd == '-dr':
-                if 'roll_data' not in locals():
-                    # Column 14 is roll in RADIANS
-                    roll_data_rad = np.array([float(row[14]) for row in data])
-                
+            if cmd == '-dr':  # Desired vs Commanded Roll
                 try:
-                    # Column 54: desired roll in control units (±500)
+                    # Desired roll angle in control units (±500)
                     desired_roll_col = np.array([float(row[DESIRED_ROLL_ANGLE]) for row in data])
-                except Exception:
-                    desired_roll_col = None
-                
-                if desired_roll_col is None:
-                    print('No desired_roll_angle column available (-dr).')
-                else:
-                    # Desired is already in control units
-                    desired_roll_units = desired_roll_col
+                    # Actual PWM command sent
+                    roll_u = np.array([float(row[U_ROLL_COLUMN]) for row in data])
                     
-                    # Convert actual from radians to degrees, then to control units
-                    actual_roll_deg = roll_data_rad * 180/np.pi
-                    actual_roll_units = actual_roll_deg * (500.0 / 90.0)
+                    # Convert desired from ±500 to PWM range (1000-2000)
+                    desired_roll_pwm = desired_roll_col + 1500
                     
-                    fig, ax = plot_2D(t_data, actual_roll_units, label='actual roll (control units)')
-                    ax.scatter(t_data, desired_roll_units, label='desired roll (control units)', s=2)
+                    fig, ax = plot_2D(t_data, roll_u, label='Commanded roll PWM')
+                    ax.scatter(t_data, desired_roll_pwm, label='Desired roll PWM', s=2)
                     ax.set_xlabel('Time (s)')
-                    ax.set_ylabel('Roll (control units)')
+                    ax.set_ylabel('Roll PWM (1000-2000)')
+                    ax.set_title('Desired vs Commanded Roll')
                     ax.legend()
                     
                     # Auto zoom
-                    all_vals = np.concatenate([desired_roll_units, actual_roll_units])
+                    all_vals = np.concatenate([roll_u, desired_roll_pwm])
                     min_y, max_y = np.nanmin(all_vals), np.nanmax(all_vals)
                     y_margin = 0.1 * (max_y - min_y if max_y != min_y else 10)
                     ax.set_ylim([min_y - y_margin, max_y + y_margin])
+                    
+                    print(f'Avg desired roll PWM: {np.mean(desired_roll_pwm):.1f}')
+                    print(f'Avg commanded roll PWM: {np.mean(roll_u):.1f}')
+                    
+                except Exception as e:
+                    print(f'Error plotting -dr: {e}')
 
             # For -vxcomp and -vycomp:
             # Both desired and actual are in WORLD FRAME, so direct comparison is valid
