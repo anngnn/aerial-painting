@@ -784,7 +784,7 @@ def primary():
             # --- Desired vs Actual Velocity Y ---
             if cmd == '-vycomp':
                 fig, ax = plot_2D(t_data, desired_vel_y_col, label='Desired Vel Y')
-                ax.scatter(t_data, actual_vel_y_col, label='Actual Vel Y (dy, flipped)', s=2)
+                ax.scatter(t_data, actual_vel_y_col, label='Actual Vel Y', s=2)
                 ax.set_xlabel('Time (s)')
                 ax.set_ylabel('Velocity Y (m/s)')
                 ax.legend()
