@@ -258,14 +258,12 @@ def primary():
 
         # --- collectors ---
         if '-vycomp' in cmds:
-            # Desired stays as-is; ACTUAL is flipped
             desired_vel_y_col = np.array([float(row[DESIRED_VEL_Y]) for row in data])
-            actual_vel_y_col  = -np.array([float(row[DY_COLUMN]) for row in data])
+            actual_vel_y_col  = np.array([float(row[DY_COLUMN]) for row in data])
 
         if '-vxcomp' in cmds:
-            # Desired stays as-is; ACTUAL is flipped
             desired_vel_x_col = np.array([float(row[DESIRED_VEL_X]) for row in data])
-            actual_vel_x_col  = -np.array([float(row[DX_COLUMN]) for row in data])
+            actual_vel_x_col  = np.array([float(row[DX_COLUMN]) for row in data])
 
 
         if ('-u' in cmds or '-dr' in cmds):
@@ -765,48 +763,11 @@ def primary():
                 print('Avg |error_vel_x|:', np.average(np.abs(err_vel_x)))
                 print('Avg |d_error_vel_x|:', np.average(np.abs(derr_vel_x)))
 
-            if cmd == '-dp':
-                # Convert actual pitch from radians → degrees
-                if 'pitch_data' not in locals():
-                    pitch_data = np.array([float(row[13]) for row in data]) * 180/np.pi  # deg
-
-                try:
-                    desired_pitch_col = np.array([float(row[DESIRED_PITCH_ANGLE]) for row in data])
-                except Exception:
-                    desired_pitch_col = None
-
-                if desired_pitch_col is None:
-                    print('No desired_pitch_angle column available (-dp).')
-                else:
-                    # If logged in control units (≈±500), leave it; otherwise convert from degrees.
-                    if np.nanmax(np.abs(desired_pitch_col)) <= 520:
-                        desired_pitch_units = desired_pitch_col  # already control units
-                    else:
-                        # Convert degrees → control units (−90° → −500, +90° → +500)
-                        desired_pitch_units = -desired_pitch_col * (500.0 / 90.0)
-
-                    # Convert actual pitch from degrees → control units
-                    actual_pitch_units = -pitch_data * (500.0 / 90.0)
-
-                    fig, ax = plot_2D(t_data, actual_pitch_units, label='actual pitch (control units)')
-                    ax.scatter(t_data, desired_pitch_units, label='desired pitch (control units)', s=2)
-                    ax.set_xlabel('Time (s)')
-                    ax.set_ylabel('Pitch (−500…+500)')
-                    ax.legend()
-                    ax.set_title('Desired vs Actual Pitch (control units)')
-
-                    # --- AUTO ZOOM based on actual data range ---
-                    all_vals = np.concatenate([desired_pitch_units, actual_pitch_units])
-                    min_y, max_y = np.nanmin(all_vals), np.nanmax(all_vals)
-                    y_margin = 0.1 * (max_y - min_y if max_y != min_y else 10)
-                    ax.set_ylim([min_y - y_margin, max_y + y_margin])
-
-                
 
             # --- Desired vs Actual Velocity X ---
             if cmd == '-vxcomp':
                 fig, ax = plot_2D(t_data, desired_vel_x_col, label='Desired Vel X')
-                ax.scatter(t_data, actual_vel_x_col, label='Actual Vel X (dx, flipped)', s=2)
+                ax.scatter(t_data, actual_vel_x_col, label='Actual Vel X (dx)', s=2)
                 ax.set_xlabel('Time (s)')
                 ax.set_ylabel('Velocity X (m/s)')
                 ax.legend()
@@ -979,41 +940,84 @@ def primary():
                 print('Avg |error_vel_y|:', np.average(np.abs(err_vel_y_col)))
                 print('Avg |d_error_vel_y|:', np.average(np.abs(derr_vel_y_col)))
 
-            if cmd == '-dr':
-                # Convert actual roll from radians → degrees (once)
-                if 'roll_data' not in locals():
-                    roll_data = np.array([float(row[14]) for row in data]) * 180/np.pi  # deg
-
+            # For -dp:
+            if cmd == '-dp':
+                if 'pitch_data' not in locals():
+                    # Column 13 is pitch in RADIANS
+                    pitch_data_rad = np.array([float(row[13]) for row in data])
+                
                 try:
+                    # Column 48: desired pitch in control units (±500)
+                    desired_pitch_col = np.array([float(row[DESIRED_PITCH_ANGLE]) for row in data])
+                except Exception:
+                    desired_pitch_col = None
+                
+                if desired_pitch_col is None:
+                    print('No desired_pitch_angle column available (-dp).')
+                else:
+                    # Desired is already in control units
+                    desired_pitch_units = desired_pitch_col
+                    
+                    # Convert actual from radians to degrees, then to control units
+                    # Mapping: ±π/2 rad = ±90° = ±500 control units
+                    actual_pitch_deg = pitch_data_rad * 180/np.pi
+                    actual_pitch_units = actual_pitch_deg * (500.0 / 90.0)
+                    
+                    fig, ax = plot_2D(t_data, actual_pitch_units, label='actual pitch (control units)')
+                    ax.scatter(t_data, desired_pitch_units, label='desired pitch (control units)', s=2)
+                    ax.set_xlabel('Time (s)')
+                    ax.set_ylabel('Pitch (control units)')
+                    ax.legend()
+                    
+                    # Auto zoom
+                    all_vals = np.concatenate([desired_pitch_units, actual_pitch_units])
+                    min_y, max_y = np.nanmin(all_vals), np.nanmax(all_vals)
+                    y_margin = 0.1 * (max_y - min_y if max_y != min_y else 10)
+                    ax.set_ylim([min_y - y_margin, max_y + y_margin])
+
+            # For -dr:
+            if cmd == '-dr':
+                if 'roll_data' not in locals():
+                    # Column 14 is roll in RADIANS
+                    roll_data_rad = np.array([float(row[14]) for row in data])
+                
+                try:
+                    # Column 54: desired roll in control units (±500)
                     desired_roll_col = np.array([float(row[DESIRED_ROLL_ANGLE]) for row in data])
                 except Exception:
                     desired_roll_col = None
-
+                
                 if desired_roll_col is None:
                     print('No desired_roll_angle column available (-dr).')
                 else:
-                    # If desired already in control units (≈±500), keep; else convert degrees→control units.
-                    if np.nanmax(np.abs(desired_roll_col)) <= 520:
-                        desired_roll_units = desired_roll_col  # already control units
-                    else:
-                        # Map deg to control units with sign convention (−90°→+500, +90°→−500)
-                        desired_roll_units = -desired_roll_col * (500.0 / 90.0)
-
-                    # Actual roll: degrees → control units, and FLIP sign (you said actual is flipped)
-                    actual_roll_units = -roll_data * (500.0 / 90.0)
-
+                    # Desired is already in control units
+                    desired_roll_units = desired_roll_col
+                    
+                    # Convert actual from radians to degrees, then to control units
+                    actual_roll_deg = roll_data_rad * 180/np.pi
+                    actual_roll_units = actual_roll_deg * (500.0 / 90.0)
+                    
                     fig, ax = plot_2D(t_data, actual_roll_units, label='actual roll (control units)')
                     ax.scatter(t_data, desired_roll_units, label='desired roll (control units)', s=2)
                     ax.set_xlabel('Time (s)')
-                    ax.set_ylabel('Roll (−500…+500)')
+                    ax.set_ylabel('Roll (control units)')
                     ax.legend()
-                    ax.set_title('Desired vs Actual Roll (control units)')
-
-                    # Auto-zoom based on data range
+                    
+                    # Auto zoom
                     all_vals = np.concatenate([desired_roll_units, actual_roll_units])
                     min_y, max_y = np.nanmin(all_vals), np.nanmax(all_vals)
                     y_margin = 0.1 * (max_y - min_y if max_y != min_y else 10)
                     ax.set_ylim([min_y - y_margin, max_y + y_margin])
+
+            # For -vxcomp and -vycomp:
+            # Both desired and actual are in WORLD FRAME, so direct comparison is valid
+            if '-vxcomp' in cmds:
+                desired_vel_x_col = np.array([float(row[DESIRED_VEL_X]) for row in data])
+                actual_vel_x_col  = np.array([float(row[DX_COLUMN]) for row in data])
+
+            if '-vycomp' in cmds:
+                desired_vel_y_col = np.array([float(row[DESIRED_VEL_Y]) for row in data])
+                actual_vel_y_col  = np.array([float(row[DY_COLUMN]) for row in data])
                 
 
 
