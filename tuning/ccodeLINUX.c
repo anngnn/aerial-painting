@@ -577,7 +577,6 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
 
   float d_error_vel_y = 0.0;
   float desired_roll_angle = 0.0;
-  // NEW** END
 
   
   //Integral terms
@@ -1344,6 +1343,7 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
           I_term_pos_y = Ki_pos_y * integral_y;
           D_term_pos_y = -Kd_pos_y * dy;       // D term should always oppose velocity to provide damping
 
+
           desired_velocity_y = P_term_pos_y + I_term_pos_y + D_term_pos_y;
 
           // transform desired velocities from WORLD frame to DRONE frame
@@ -1383,12 +1383,12 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
           filtered_desired_roll = (1-alpha)*filtered_desired_roll + alpha*desired_roll_angle;
 
           // Log after filtering
-          fprintf(clog_fptr, "%d.%.3ld: Filtered outputs - pitch: %.2f, roll: %.2f\r\n", 
-                  (int)loop_start_time.tv_sec, 
-                  loop_start_time.tv_nsec/1000000,
-                  filtered_desired_pitch, 
-                  filtered_desired_roll);
-          fflush(clog_fptr);
+          // fprintf(clog_fptr, "%d.%.3ld: Filtered outputs - pitch: %.2f, roll: %.2f\r\n", 
+          //         (int)loop_start_time.tv_sec, 
+          //         loop_start_time.tv_nsec/1000000,
+          //         filtered_desired_pitch, 
+          //         filtered_desired_roll);
+          // fflush(clog_fptr);
 
           //THis is essentially matrix multiplication of the error vector times the K vecor, just written out ahead of time
           //with the values that would compute to zero as zero, assuming a desired 0 velocity and 0 roll, pitch
@@ -1406,11 +1406,11 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
           z_u = (int16_t) (100*uz + 1500);
           yaw_u = (int16_t) (100*uw + 1500);
 
-          fprintf(clog_fptr, "%d.%.3ld: PWM commands - pitch_u: %d (filtered: %.2f)\r\n", 
-          (int)loop_start_time.tv_sec, 
-          loop_start_time.tv_nsec/1000000,
-          pitch_u,
-          filtered_desired_pitch);
+          // fprintf(clog_fptr, "%d.%.3ld: PWM commands - pitch_u: %d (filtered: %.2f)\r\n", 
+          // (int)loop_start_time.tv_sec, 
+          // loop_start_time.tv_nsec/1000000,
+          // pitch_u,
+          // filtered_desired_pitch);
 
           //Add in the integral terms and any hover terms
           // pitch_u = pitch_u + (int16_t)(integral_x*x_comp) + (uint16_t)((-1)*integral_y*y_comp);
@@ -1630,7 +1630,6 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
         roll_u = 1500; pitch_u = 1500; z_u = 900; yaw_u = 1500;
         integral_x = 0; integral_y = 0; integral_z = 0;
 
-        // NEW**
         // Position PID Controller x
         P_term_pos_x = 0.0;
         I_term_pos_x = 0.0;
