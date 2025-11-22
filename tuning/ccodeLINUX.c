@@ -556,7 +556,7 @@ int controlLoop(uint8_t *p_id, char *plocalizer_ip, uint16_t *plocalizer_port, u
 
   // Initialize gains for POSITION controller
   // y dir
-  float Kp_pos_y = 2.5;
+  float Kp_pos_y = 1.9;
   float Ki_pos_y = 0.0;
   float Kd_pos_y = 1.2;
   float P_term_pos_y = 0.0;
