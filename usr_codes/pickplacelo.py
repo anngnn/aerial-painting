@@ -94,13 +94,13 @@ def usr(flyer):
     
     # set the first waypoint
     setpoint = first_pos
-    setpoint[2] = setpoint[2] + 0.5
+    setpoint[2] = setpoint[2] + 0.3
     setpoint[3:] = 0
     flyer.waypoint(setpoint)
     current_waypoint = np.copy(setpoint)
 
     list_waypoints.append(setpoint)
-    time_at_waypoint.append(3)
+    time_at_waypoint.append(10)
 
 
     # ABOVE droxel
@@ -110,13 +110,13 @@ def usr(flyer):
 
     # DOWN to pick
     idx_before_pick = len(list_waypoints)
-    make_gradual_wp(setpoint2, [0,0,1], 0.548, 0.05, going_down=True)
+    make_gradual_wp(setpoint2, [0,0,1], 0.38, 0.05, going_down=True)
     for _ in range (len(list_waypoints) - idx_before_pick):
         time_at_waypoint.append(1)
     pick_waypoint = list_waypoints[-1]
 
     # UP after pick
-    setpoint4 = make_wp(pick_waypoint, [0,0,1], 0.55)
+    setpoint4 = make_wp(pick_waypoint, [0,0,1], 0.38)
     list_waypoints.append(setpoint4)
     time_at_waypoint.append(3)
 
@@ -127,7 +127,7 @@ def usr(flyer):
 
     # DOWN to place
     idx_before_place = len(list_waypoints)
-    make_gradual_wp(setpoint5, [0,0,1], 0.54, 0.05, going_down=True)
+    make_gradual_wp(setpoint5, [0,0,1], 0.38, 0.05, going_down=True)
     for _ in range(len(list_waypoints) - idx_before_place):
         time_at_waypoint.append(1)
     place_waypoint = list_waypoints[-1]
@@ -139,7 +139,7 @@ def usr(flyer):
 
     # UP to release droxel
     idx_before_release = len(list_waypoints)
-    make_gradual_wp(setpoint7, [0, 0, 1], 0.56, 0.05, going_down=False)
+    make_gradual_wp(setpoint7, [0, 0, 1], 0.59, 0.05, going_down=False)
     for _ in range(len(list_waypoints) - idx_before_release):
         time_at_waypoint.append(1)
 
