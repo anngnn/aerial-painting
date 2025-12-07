@@ -110,14 +110,14 @@ def usr(flyer):
     # Mission definition: each entry is (direction, distance, time, kwargs)
     # Use 'gradual' key for gradual movements
     mission = [
-        # ABOVE droxel
+        # ABOVE point to paint
         [[1, 0, 0], 0.5, 3],
         
-        # DOWN to pick (gradual)
-        [[0, 0, -1], 0.35, 1, 0.02],
+        # DOWN to paint (gradual)
+        [[0, 0, -1], 0.375, 1, 0.02],
         
-        # UP after pick
-        [[0, 0, 1], 0.35, 3],
+        # UP after painting
+        [[0, 0, 1], 0.375, 3],
         
     ]
 
