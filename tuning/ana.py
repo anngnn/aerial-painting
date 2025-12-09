@@ -36,44 +36,43 @@ MISSED_MSG_COLUMN = 29
 # voltage=30
 ERROR_COLUMN = 31
 
-# Columns 32-35: Position controller X
+# Columns 32-36: Position controller X
 P_TERM_POS_X = 32
 I_TERM_POS_X = 33
 D_TERM_POS_X = 34
 DESIRED_VEL_X = 35
+PURE_DESIRED_VEL_X = 36  # NEW!
 
-# Columns 36-39: Position controller Y
-P_TERM_POS_Y = 36
-I_TERM_POS_Y = 37
-D_TERM_POS_Y = 38
-DESIRED_VEL_Y = 39
+# Columns 37-41: Position controller Y
+P_TERM_POS_Y = 37
+I_TERM_POS_Y = 38
+D_TERM_POS_Y = 39
+DESIRED_VEL_Y = 40
+PURE_DESIRED_VEL_Y = 41  # NEW!
 
-# Columns 40-42: Position errors
-ERROR_POS_X = 40
-ERROR_POS_Y = 41
-ERROR_POS_Z = 42
+# NOW ALL SUBSEQUENT COLUMNS SHIFT BY +2:
+ERROR_POS_X = 42  
+ERROR_POS_Y = 43  
+ERROR_POS_Z = 44  
 
-# Columns 43-48: Velocity controller X
-P_TERM_VEL_X = 43
-I_TERM_VEL_X = 44
-D_TERM_VEL_X = 45
-ERROR_VEL_X = 46
-D_ERROR_VEL_X = 47
-DESIRED_PITCH_ANGLE = 48
+P_TERM_VEL_X = 45  
+I_TERM_VEL_X = 46  
+D_TERM_VEL_X = 47  
+ERROR_VEL_X = 48   
+D_ERROR_VEL_X = 49 
+DESIRED_PITCH_ANGLE = 50  
 
-# Columns 49-54: Velocity controller Y
-P_TERM_VEL_Y = 49
-I_TERM_VEL_Y = 50
-D_TERM_VEL_Y = 51
-ERROR_VEL_Y = 52
-D_ERROR_VEL_Y = 53
-DESIRED_ROLL_ANGLE = 54
+P_TERM_VEL_Y = 51  
+I_TERM_VEL_Y = 52  
+D_TERM_VEL_Y = 53  
+ERROR_VEL_Y = 54   
+D_ERROR_VEL_Y = 55 
+DESIRED_ROLL_ANGLE = 56  
 
-# Columns 55-58: Actual values
-ACTUAL_VEL_X = 55
-ACTUAL_VEL_Y = 56
-ACTUAL_PITCH = 57  # radians
-ACTUAL_ROLL = 58   # radians
+ACTUAL_VEL_X = 57 
+ACTUAL_VEL_Y = 58  
+ACTUAL_PITCH = 59 
+ACTUAL_ROLL = 60 
 
 # Legacy/unused columns (if you need Kalman filter support later)
 X_KF_COLUMN = 32  # Not currently in CSV but referenced in code
@@ -766,39 +765,59 @@ def primary():
 
             # --- Desired vs Actual Velocity X ---
             if cmd == '-vxcomp':
-                fig, ax = plot_2D(t_data, desired_vel_x_col, label='Desired Vel X')
-                ax.scatter(t_data, actual_vel_x_col, label='Actual Vel X (dx)', s=2)
+                pure_desired_vel_x = np.array([float(row[PURE_DESIRED_VEL_X]) for row in data])
+                actual_vel_x_col = np.array([float(row[DX_COLUMN]) for row in data])
+                
+                fig, ax = plot_2D(t_data, pure_desired_vel_x, label='Pure Desired Vel X')
+                ax.scatter(t_data, actual_vel_x_col, label='Actual Vel X', s=2)
                 ax.set_xlabel('Time (s)')
                 ax.set_ylabel('Velocity X (m/s)')
                 ax.legend()
                 ax.set_title('Desired vs Actual Velocity X')
 
-                all_vals = np.concatenate([desired_vel_x_col, actual_vel_x_col])
-                min_y, max_y = np.nanmin(all_vals), np.nanmax(all_vals)
-                y_margin = 0.1 * (max_y - min_y if max_y != min_y else 1.0)
-                ax.set_ylim([min_y - y_margin, max_y + y_margin])
+                # FIX: Use pure_desired_vel_x instead of desired_vel_x_col
+                print('Avg |pure_desired_vel_x|:', np.average(np.abs(pure_desired_vel_x)))
+                print('Avg |actual_vel_x|:', np.average(np.abs(actual_vel_x_col)))
 
-                print('Avg |desired_vel_x|:', np.average(np.abs(desired_vel_x_col)))
-                print('Avg |actual_vel_x|:',  np.average(np.abs(actual_vel_x_col)))
+                # Zoom to actual velocity range
+                actual_min = np.nanmin(actual_vel_x_col)
+                actual_max = np.nanmax(actual_vel_x_col)
+                margin = 0.1 * (actual_max - actual_min if actual_max != actual_min else 0.1)
+                ax.set_ylim([actual_min - margin, actual_max + margin])
 
             # --- Desired vs Actual Velocity Y ---
             if cmd == '-vycomp':
-                fig, ax = plot_2D(t_data, desired_vel_y_col, label='Desired Vel Y')
+                pure_desired_vel_y = np.array([float(row[PURE_DESIRED_VEL_Y]) for row in data])
+                actual_vel_y_col = np.array([float(row[DY_COLUMN]) for row in data])
+                
+                fig, ax = plot_2D(t_data, pure_desired_vel_y, label='Pure Desired Vel Y')
                 ax.scatter(t_data, actual_vel_y_col, label='Actual Vel Y', s=2)
                 ax.set_xlabel('Time (s)')
                 ax.set_ylabel('Velocity Y (m/s)')
                 ax.legend()
                 ax.set_title('Desired vs Actual Velocity Y')
 
-                all_vals = np.concatenate([desired_vel_y_col, actual_vel_y_col])
-                min_y, max_y = np.nanmin(all_vals), np.nanmax(all_vals)
-                y_margin = 0.1 * (max_y - min_y if max_y != min_y else 1.0)
-                ax.set_ylim([min_y - y_margin, max_y + y_margin])
+                # FIX: Use pure_desired_vel_y instead of desired_vel_y_col
+                print('Avg |pure_desired_vel_y|:', np.average(np.abs(pure_desired_vel_y)))
+                print('Avg |actual_vel_y|:', np.average(np.abs(actual_vel_y_col)))
 
-                print('Avg |desired_vel_y|:', np.average(np.abs(desired_vel_y_col)))
-                print('Avg |actual_vel_y|:',  np.average(np.abs(actual_vel_y_col)))
+                # Zoom to actual velocity range
+                actual_min = np.nanmin(actual_vel_y_col)
+                actual_max = np.nanmax(actual_vel_y_col)
+                margin = 0.1 * (actual_max - actual_min if actual_max != actual_min else 0.1)
+                ax.set_ylim([actual_min - margin, actual_max + margin])
 
-
+            if cmd == '-evy':
+                # Use the velocity error already calculated in C code
+                vel_error_y = [float(row[ERROR_VEL_Y]) for row in data]
+                
+                fig, ax = plot_2D(t_data, vel_error_y, label='Velocity Error Y')
+                ax.axhline(y=0, color='k', linestyle='--', alpha=0.3)
+                ax.set_xlabel('Time (s)')
+                ax.set_ylabel('Velocity Error (m/s)')
+                ax.set_title('Velocity Tracking Error Y')
+                
+                print(f'RMS velocity error Y: {np.sqrt(np.mean(np.square(vel_error_y))):.4f} m/s')
 
             # ========== Y-DIRECTION POSITION CONTROLLER PLOTS ==========
             if cmd == '-py':
@@ -998,15 +1017,16 @@ def primary():
                 except Exception as e:
                     print(f'Error plotting -dr: {e}')
 
-            # For -vxcomp and -vycomp:
-            # Both desired and actual are in WORLD FRAME, so direct comparison is valid
-            if '-vxcomp' in cmds:
-                desired_vel_x_col = np.array([float(row[DESIRED_VEL_X]) for row in data])
-                actual_vel_x_col  = np.array([float(row[DX_COLUMN]) for row in data])
+            # TO DELETE
+            # # For -vxcomp and -vycomp:
+            # # Both desired and actual are in WORLD FRAME, so direct comparison is valid
+            # if '-vxcomp' in cmds:
+            #     desired_vel_x_col = np.array([float(row[DESIRED_VEL_X]) for row in data])
+            #     actual_vel_x_col  = np.array([float(row[DX_COLUMN]) for row in data])
 
-            if '-vycomp' in cmds:
-                desired_vel_y_col = np.array([float(row[DESIRED_VEL_Y]) for row in data])
-                actual_vel_y_col  = np.array([float(row[DY_COLUMN]) for row in data])
+            # if '-vycomp' in cmds:
+            #     desired_vel_y_col = np.array([float(row[DESIRED_VEL_Y]) for row in data])
+            #     actual_vel_y_col  = np.array([float(row[DY_COLUMN]) for row in data])
                 
 
 
