@@ -120,8 +120,7 @@ def usr(flyer):
 
         # FORWARD X to EXIT
         [[1, 0, 0], 0.2, 5],
-
-        # FORWARD y to EXIT
+        # FORWARD Y to EXIT
         [[0, 1, 0], 1.5, 1, 0.3],
 
     ]

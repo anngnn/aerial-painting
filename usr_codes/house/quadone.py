@@ -114,12 +114,19 @@ def usr(flyer):
         # ABOVE point to paint
         [[1, 0, 0], 0.65, 5],
         [[0, 1, 0], 0.2, 5],
+        # DOWN to paint (gradual)
+        [[0, 0, -1], 0.42, 1, 0.02],
+        # UP after painting
+        [[0, 0, 1], 0.05, 3],
 
+
+        ##### EXITING #####
+        # UP enough height to exit
+        [[0, 0, 1], 0.3, 3],
         # FORWARD X to EXIT
-        [[1, 0, 0], 0.2, 5],
-
-        # FORWARD y to EXIT
-        [[0, 1, 0], 1.5, 5],
+        [[1, 0, 0], 0.5, 5],
+        # FORWARD Y to EXIT
+        [[0, 1, 0], 1.5, 1, 0.3],
 
     ]
 
