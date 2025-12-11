@@ -110,6 +110,9 @@ def usr(flyer):
     # Mission definition: each entry is (direction, distance, time, kwargs)
     # Use 'gradual' key for gradual movements
     mission = [
+        # get y to FRONT side
+        [[0, 1, 0], -0.70, 5],
+
         # DOT1
         # ABOVE point to paint
         [[1, 0, 0], 0.50, 5],
@@ -168,7 +171,7 @@ def usr(flyer):
     current_waypoint = np.copy(setpoint)
 
     list_waypoints.append(setpoint)
-    time_at_waypoint.append(125)
+    time_at_waypoint.append(135)
 
 
     # Build waypoints from mission definition
