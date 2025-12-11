@@ -110,8 +110,8 @@ def usr(flyer):
     # Mission definition: each entry is (direction, distance, time, kwargs)
     # Use 'gradual' key for gradual movements
     mission = [
-        # BACK y to origin
-        [[0, 1, 0], -0.35, 5],
+        # get y to FRONT side
+        [[0, 1, 0], -0.35, 3],
 
         # DOT 1
         # ABOVE point to paint
