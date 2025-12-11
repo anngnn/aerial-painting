@@ -1,0 +1,47 @@
+quadone         [9]
+quadtwo         [11]
+quadthree       [14]
+quadfour        [30]
+quadfive        [31]
+
+quadone
+    go to origin (relative to quad1: straight across, down 20cm)
+    go down to BOTTOM (80cm +Y) to paint the bottom of the house
+    paint 7 dots (for ... seconds)
+    exit
+        - go +Y for dist to exit camera frame
+
+after 10s
+quadtwo
+    go to origin
+    go to TOP (lil bit +Y) to paint
+    paint 7 dots (for ... seconds)
+    exit
+        - go +Y for dist to exit camera frame
+
+------------------------------------------------------------------
+after 10s of quadtwo exit
+
+quadthree
+    go to origin
+    go down to BOTTOM (~120cm +Y) to paint
+    paint 7 dots (for ... seconds)
+    exit
+        - go +Y for dist to exit camera frame
+
+after 10s
+quadfour
+    go to origin
+    go to TOP (lil bit +Y) to paint
+    paint 7 dots (for ... seconds)
+    exit
+        - go +Y for dist to exit camera frame
+
+------------------------------------------------------------------
+after 10s of quadtwo exit
+quadfive
+    go to origin
+    go down to BOTTOM(~120cm +Y) (or TOP) to paint
+    paint 7 dots (for ... seconds)
+    exit
+        - go +Y for dist to exit camera frame
