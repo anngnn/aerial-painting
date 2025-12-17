@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drone Mural Grid Planner</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        label {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #555;
+            font-size: 13px;
+        }
+        
+        input[type="number"] {
+            padding: 8px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .drone-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 25px;
+        }
+        
+        .drone-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .drone-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .drone-btn.active {
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.2);
+            transform: translateY(0);
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+        
+        .action-btn {
+            padding: 10px 20px;
+            border: 2px solid #333;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .action-btn:hover {
+            background: #333;
+            color: white;
+        }
+        
+        .action-btn.highlight {
+            background: #f39c12;
+            border-color: #f39c12;
+            color: white;
+        }
+        
+        .action-btn.highlight:hover {
+            background: #e67e22;
+            border-color: #e67e22;
+        }
+        
+        .canvas-wrapper {
+            display: flex;
+            margin-bottom: 25px;
+            gap: 0;
+            flex-direction: row-reverse;
+        }
+        
+        .axis-labels-y {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            padding-left: 10px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #555;
+            text-align: left;
+        }
+        
+        .axis-labels-x {
+            display: flex;
+            justify-content: space-around;
+            padding-bottom: 5px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .grid-with-labels {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .grid-container {
+            display: inline-block;
+            border: 3px solid #333;
+            background: white;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            position: relative;
+        }
+        
+        .midline-x {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: rgba(255, 0, 0, 0.2);
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        .midline-y {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: rgba(0, 0, 255, 0.2);
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        .midline-label {
+            position: absolute;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 2px 4px;
+            border-radius: 3px;
+            pointer-events: none;
+            z-index: 11;
+        }
+        
+        .midline-label-x {
+            background: rgba(255, 0, 0, 0.15);
+            color: #c0392b;
+            top: 5px;
+        }
+        
+        .midline-label-y {
+            background: rgba(0, 0, 255, 0.15);
+            color: #2980b9;
+            left: 5px;
+        }
+        
+        .axis-label-corner {
+            position: absolute;
+            top: -30px;
+            right: -30px;
+            font-size: 12px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .axis-arrow-x {
+            position: absolute;
+            top: -25px;
+            right: 50%;
+            transform: translateX(50%);
+            font-size: 14px;
+            font-weight: bold;
+            color: #e74c3c;
+        }
+        
+        .axis-arrow-y {
+            position: absolute;
+            top: 50%;
+            right: -25px;
+            transform: translateY(-50%) rotate(90deg);
+            font-size: 14px;
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        .grid {
+            display: grid;
+            gap: 1px;
+            background: #ccc;
+        }
+        
+        .cell {
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid #eee;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 0 2px rgba(0,0,0,0.5);
+        }
+        
+        .cell:hover {
+            opacity: 0.8;
+            transform: scale(1.05);
+            z-index: 10;
+            box-shadow: 0 0 5px rgba(0,0,0,0.3);
+        }
+        
+        .cell.painted {
+            opacity: 0.4;
+            position: relative;
+        }
+        
+        .cell.painted::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 14px;
+            color: #2ecc71;
+            text-shadow: 0 0 3px white;
+            font-weight: bold;
+        }
+        
+        .cell.paint-now::before {
+            content: '★';
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            font-size: 8px;
+            color: #f39c12;
+            text-shadow: 0 0 2px rgba(0,0,0,0.8);
+            z-index: 1;
+        }
+        
+        .info-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 25px;
+        }
+        
+        .info-card {
+            padding: 15px;
+            border-radius: 10px;
+            background: #f8f9fa;
+        }
+        
+        .info-card h3 {
+            margin-top: 0;
+            color: #333;
+            font-size: 16px;
+        }
+        
+        .drone-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            background: white;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .stat-label {
+            font-weight: 600;
+        }
+        
+        .export-section {
+            margin-top: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        
+        .export-section h3 {
+            margin-top: 0;
+        }
+        
+        textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            resize: vertical;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Drone Mural Grid Planner</h1>
+        <p class="subtitle">Click cells to assign them to drones. Mark cells as painted to track progress. Star cells you want to paint now!</p>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label>Canvas Width (cm)</label>
+                <input type="number" id="canvasWidth" value="90" min="10" step="2.5">
+            </div>
+            <div class="control-group">
+                <label>Canvas Height (cm)</label>
+                <input type="number" id="canvasHeight" value="120" min="10" step="2.5">
+            </div>
+            <div class="control-group">
+                <label>Cell Size (cm)</label>
+                <input type="number" id="cellSize" value="2.5" min="0.5" step="0.5">
+            </div>
+            <div class="control-group">
+                <label>Display Cell Size (px)</label>
+                <input type="number" id="displayCellSize" value="20" min="5" step="1">
+            </div>
+        </div>
+        
+        <div class="action-buttons">
+            <button class="action-btn" onclick="updateGrid()">Update Grid</button>
+            <button class="action-btn" onclick="clearGrid()">Clear All</button>
+            <button class="action-btn" onclick="clearPainted()">Clear Painted Marks</button>
+            <button class="action-btn highlight" onclick="clearNotPaintingNow()">🗑️ Clear Everything Except Paint Now</button>
+            <button class="action-btn" onclick="saveDrawing()">💾 Save Drawing</button>
+            <button class="action-btn" onclick="loadDrawing()">📂 Load Drawing</button>
+            <button class="action-btn" onclick="exportDrawingFile()">⬇️ Download File</button>
+            <button class="action-btn" onclick="document.getElementById('importFile').click()">⬆️ Import File</button>
+            <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importDrawingFile(event)">
+            <button class="action-btn" onclick="exportData()">Export Data</button>
+        </div>
+        
+        <div id="saveStatus" style="padding: 10px; margin-bottom: 15px; border-radius: 8px; display: none; font-weight: 600;"></div>
+        
+        <div class="drone-controls">
+            <button class="drone-btn active" onclick="selectDrone(0)" id="drone-0" style="background: #ff6b6b; color: white;">Drone 1</button>
+            <button class="drone-btn" onclick="selectDrone(1)" id="drone-1" style="background: #4ecdc4; color: white;">Drone 2</button>
+            <button class="drone-btn" onclick="selectDrone(2)" id="drone-2" style="background: #45b7d1; color: white;">Drone 3</button>
+            <button class="drone-btn" onclick="selectDrone(3)" id="drone-3" style="background: #f9ca24; color: #333;">Drone 4</button>
+            <button class="drone-btn" onclick="selectDrone(4)" id="drone-4" style="background: #6c5ce7; color: white;">Drone 5</button>
+            <button class="drone-btn" onclick="selectDrone('painted')" id="drone-painted" style="background: #7f8c8d; color: white;">✓ Mark Painted</button>
+            <button class="drone-btn" onclick="selectDrone('paintnow')" id="drone-paintnow" style="background: #f39c12; color: white;">★ Paint Now</button>
+            <button class="drone-btn" onclick="selectDrone(null)" id="drone-erase" style="background: #95a5a6; color: white;">Erase</button>
+        </div>
+        
+        <div class="canvas-wrapper">
+            <div class="axis-labels-y" id="yAxisLabels"></div>
+            <div class="grid-with-labels">
+                <div class="axis-labels-x" id="xAxisLabels"></div>
+                <div class="grid-container">
+                    <div class="axis-label-corner">(0,0)</div>
+                    <div class="axis-arrow-x">← +X</div>
+                    <div class="axis-arrow-y">+Y ↓</div>
+                    <div class="grid" id="grid"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="info-panel" id="infoPanel"></div>
+        
+        <div class="export-section">
+            <h3>Mission Parameters</h3>
+            <div class="controls">
+                <div class="control-group">
+                    <label>Approach Height (m)</label>
+                    <input type="number" id="approachHeight" value="0.50" step="0.01">
+                </div>
+                <div class="control-group">
+                    <label>Paint Depth (m)</label>
+                    <input type="number" id="paintDepth" value="0.46" step="0.01">
+                </div>
+                <div class="control-group">
+                    <label>Lift After Paint (m)</label>
+                    <input type="number" id="liftHeight" value="0.05" step="0.01">
+                </div>
+                <div class="control-group">
+                    <label>Exit Height (m)</label>
+                    <input type="number" id="exitHeight" value="0.15" step="0.01">
+                </div>
+            </div>
+            
+            <h4 style="margin-top: 20px;">Per-Drone Entry Settings</h4>
+            <div class="controls">
+                <div class="control-group">
+                    <label>Drone 1 Entry Y (m)</label>
+                    <input type="number" id="drone1EntryY" value="0.0" step="0.05">
+                </div>
+                <div class="control-group">
+                    <label>Drone 2 Entry Y (m)</label>
+                    <input type="number" id="drone2EntryY" value="-0.35" step="0.05">
+                </div>
+                <div class="control-group">
+                    <label>Drone 3 Entry Y (m)</label>
+                    <input type="number" id="drone3EntryY" value="-0.70" step="0.05">
+                </div>
+                <div class="control-group">
+                    <label>Drone 4 Entry Y (m)</label>
+                    <input type="number" id="drone4EntryY" value="-0.35" step="0.05">
+                </div>
+                <div class="control-group">
+                    <label>Drone 5 Entry Y (m)</label>
+                    <input type="number" id="drone5EntryY" value="-0.35" step="0.05">
+                </div>
+            </div>
+            
+            <button class="action-btn" onclick="generateMissions()" style="margin: 15px 0;">Generate Python Missions</button>
+            <h3>Export Data (JSON)</h3>
+            <textarea id="exportArea" readonly></textarea>
+        </div>
+    </div>
+
+    <script>
+        const droneColors = [
+            '#ff6b6b',
+            '#4ecdc4',
+            '#45b7d1',
+            '#f9ca24',
+            '#6c5ce7'
+        ];
+        
+        let gridData = [];
+        let paintedData = [];
+        let paintNowData = [];
+        let selectedDrone = 0;
+        let cols = 0;
+        let rows = 0;
+        
+        function initGrid() {
+            const canvasWidth = parseFloat(document.getElementById('canvasWidth').value);
+            const canvasHeight = parseFloat(document.getElementById('canvasHeight').value);
+            const cellSize = parseFloat(document.getElementById('cellSize').value);
+            const displayCellSize = parseInt(document.getElementById('displayCellSize').value);
+            
+            cols = Math.floor(canvasWidth / cellSize);
+            rows = Math.floor(canvasHeight / cellSize);
+            
+            gridData = Array(rows).fill(null).map(() => Array(cols).fill(null));
+            paintedData = Array(rows).fill(null).map(() => Array(cols).fill(false));
+            paintNowData = Array(rows).fill(null).map(() => Array(cols).fill(false));
+            
+            const grid = document.getElementById('grid');
+            grid.style.gridTemplateColumns = `repeat(${cols}, ${displayCellSize}px)`;
+            grid.innerHTML = '';
+            
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.style.width = `${displayCellSize}px`;
+                    cell.style.height = `${displayCellSize}px`;
+                    cell.dataset.row = row;
+                    cell.dataset.col = col;
+                    cell.onclick = () => toggleCell(row, col);
+                    grid.appendChild(cell);
+                }
+            }
+            
+            // Generate X-axis labels (every 10cm) - TOP
+            const xAxisLabels = document.getElementById('xAxisLabels');
+            xAxisLabels.innerHTML = '';
+            const xStep = 10;
+            for (let x = canvasWidth; x >= 0; x -= xStep) {
+                const label = document.createElement('div');
+                label.textContent = `${x}cm`;
+                label.style.flex = '1';
+                label.style.textAlign = 'center';
+                xAxisLabels.appendChild(label);
+            }
+            
+            // Generate Y-axis labels (every 10cm) - RIGHT SIDE
+            const yAxisLabels = document.getElementById('yAxisLabels');
+            yAxisLabels.innerHTML = '';
+            const yStep = 10;
+            for (let y = 0; y <= canvasHeight; y += yStep) {
+                const label = document.createElement('div');
+                label.textContent = `${y}cm`;
+                label.style.flex = '1';
+                label.style.textAlign = 'left';
+                yAxisLabels.appendChild(label);
+            }
+            
+            // Add midlines
+            addMidlines(canvasWidth, canvasHeight, displayCellSize);
+            
+            updateStats();
+        }
+        
+        function addMidlines(canvasWidth, canvasHeight, displayCellSize) {
+            const existingMidlines = document.querySelectorAll('.midline-x, .midline-y, .midline-label');
+            existingMidlines.forEach(el => el.remove());
+            
+            const gridContainer = document.querySelector('.grid-container');
+            
+            const midX = canvasWidth / 2;
+            const midY = canvasHeight / 2;
+            
+            const cellSize = parseFloat(document.getElementById('cellSize').value);
+            const midXPixels = (canvasWidth - midX) / cellSize * displayCellSize;
+            const midYPixels = midY / cellSize * displayCellSize;
+            
+            const midlineX = document.createElement('div');
+            midlineX.className = 'midline-x';
+            midlineX.style.left = `${midXPixels}px`;
+            gridContainer.appendChild(midlineX);
+            
+            const midlineY = document.createElement('div');
+            midlineY.className = 'midline-y';
+            midlineY.style.top = `${midYPixels}px`;
+            gridContainer.appendChild(midlineY);
+            
+            const labelX = document.createElement('div');
+            labelX.className = 'midline-label midline-label-x';
+            labelX.textContent = `X=${midX.toFixed(0)}cm`;
+            labelX.style.left = `${midXPixels - 30}px`;
+            gridContainer.appendChild(labelX);
+            
+            const labelY = document.createElement('div');
+            labelY.className = 'midline-label midline-label-y';
+            labelY.textContent = `Y=${midY.toFixed(0)}cm`;
+            labelY.style.top = `${midYPixels + 5}px`;
+            gridContainer.appendChild(labelY);
+        }
+        
+        function toggleCell(row, col) {
+            if (selectedDrone === 'painted') {
+                // Toggle painted status
+                paintedData[row][col] = !paintedData[row][col];
+            } else if (selectedDrone === 'paintnow') {
+                // Toggle paint now status
+                paintNowData[row][col] = !paintNowData[row][col];
+            } else {
+                // Assign drone
+                gridData[row][col] = selectedDrone;
+            }
+            updateCell(row, col);
+            updateStats();
+            exportData();
+        }
+        
+        function updateCell(row, col) {
+            const cells = document.querySelectorAll('.cell');
+            const index = row * cols + col;
+            const cell = cells[index];
+            const droneId = gridData[row][col];
+            const isPainted = paintedData[row][col];
+            const isPaintNow = paintNowData[row][col];
+            
+            if (droneId === null) {
+                cell.style.background = 'white';
+                cell.textContent = '';
+            } else {
+                cell.style.background = droneColors[droneId];
+                cell.textContent = droneId + 1;
+            }
+            
+            // Apply painted styling
+            if (isPainted) {
+                cell.classList.add('painted');
+            } else {
+                cell.classList.remove('painted');
+            }
+            
+            // Apply paint now styling
+            if (isPaintNow) {
+                cell.classList.add('paint-now');
+            } else {
+                cell.classList.remove('paint-now');
+            }
+        }
+        
+        function selectDrone(droneId) {
+            selectedDrone = droneId;
+            
+            document.querySelectorAll('.drone-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            if (droneId === null) {
+                document.getElementById('drone-erase').classList.add('active');
+            } else if (droneId === 'painted') {
+                document.getElementById('drone-painted').classList.add('active');
+            } else if (droneId === 'paintnow') {
+                document.getElementById('drone-paintnow').classList.add('active');
+            } else {
+                document.getElementById(`drone-${droneId}`).classList.add('active');
+            }
+        }
+        
+        function updateGrid() {
+            initGrid();
+        }
+        
+        function clearGrid() {
+            if (confirm('Clear all drone assignments?')) {
+                initGrid();
+            }
+        }
+        
+        function clearPainted() {
+            if (confirm('Clear all painted marks?')) {
+                paintedData = Array(rows).fill(null).map(() => Array(cols).fill(false));
+                for (let row = 0; row < rows; row++) {
+                    for (let col = 0; col < cols; col++) {
+                        updateCell(row, col);
+                    }
+                }
+                updateStats();
+            }
+        }
+        
+        function clearNotPaintingNow() {
+            let paintNowCount = 0;
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    if (paintNowData[row][col]) {
+                        paintNowCount++;
+                    }
+                }
+            }
+            
+            if (paintNowCount === 0) {
+                alert('No cells marked as "Paint Now". Mark cells with a ★ first, then use this button to clear everything else.');
+                return;
+            }
+            
+            if (confirm(`Keep ${paintNowCount} cells marked with ★ and clear all others?`)) {
+                for (let row = 0; row < rows; row++) {
+                    for (let col = 0; col < cols; col++) {
+                        if (!paintNowData[row][col]) {
+                            gridData[row][col] = null;
+                            paintedData[row][col] = false;
+                        }
+                    }
+                }
+                
+                // Update all cells
+                for (let row = 0; row < rows; row++) {
+                    for (let col = 0; col < cols; col++) {
+                        updateCell(row, col);
+                    }
+                }
+                
+                updateStats();
+                exportData();
+                showStatus(`✓ Cleared everything except ${paintNowCount} cells marked for painting now!`, true);
+            }
+        }
+        
+        function updateStats() {
+            const cellSize = parseFloat(document.getElementById('cellSize').value);
+            const canvasWidth = parseFloat(document.getElementById('canvasWidth').value);
+            const canvasHeight = parseFloat(document.getElementById('canvasHeight').value);
+            
+            const stats = Array(5).fill(0).map(() => ({ count: 0, painted: 0, paintNow: 0, cells: [] }));
+            
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    const droneId = gridData[row][col];
+                    if (droneId !== null) {
+                        stats[droneId].count++;
+                        if (paintedData[row][col]) {
+                            stats[droneId].painted++;
+                        }
+                        if (paintNowData[row][col]) {
+                            stats[droneId].paintNow++;
+                        }
+                        const x = col * cellSize + cellSize / 2;
+                        const y = row * cellSize + cellSize / 2;
+                        stats[droneId].cells.push({ row, col, x, y });
+                    }
+                }
+            }
+            
+            const infoPanel = document.getElementById('infoPanel');
+            infoPanel.innerHTML = '';
+            
+            stats.forEach((stat, i) => {
+                if (stat.count > 0) {
+                    const card = document.createElement('div');
+                    card.className = 'info-card';
+                    card.style.borderLeft = `4px solid ${droneColors[i]}`;
+                    
+                    const progressPercent = stat.count > 0 ? (stat.painted / stat.count * 100).toFixed(1) : 0;
+                    
+                    card.innerHTML = `
+                        <h3>Drone ${i + 1}</h3>
+                        <div class="drone-stats">
+                            <div class="stat-row">
+                                <span class="stat-label">Cells:</span>
+                                <span>${stat.count}</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Paint Now (★):</span>
+                                <span style="color: #f39c12; font-weight: bold;">${stat.paintNow}</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Painted:</span>
+                                <span>${stat.painted} / ${stat.count} (${progressPercent}%)</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Area:</span>
+                                <span>${(stat.count * cellSize * cellSize).toFixed(1)} cm²</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">% of Canvas:</span>
+                                <span>${((stat.count / (rows * cols)) * 100).toFixed(1)}%</span>
+                            </div>
+                        </div>
+                    `;
+                    
+                    infoPanel.appendChild(card);
+                }
+            });
+        }
+        
+        function exportData() {
+            const cellSize = parseFloat(document.getElementById('cellSize').value);
+            const canvasWidth = parseFloat(document.getElementById('canvasWidth').value);
+            const canvasHeight = parseFloat(document.getElementById('canvasHeight').value);
+            
+            const exportObj = {
+                canvas: {
+                    width: canvasWidth,
+                    height: canvasHeight,
+                    cellSize: cellSize,
+                    rows: rows,
+                    cols: cols
+                },
+                drones: []
+            };
+            
+            for (let droneId = 0; droneId < 5; droneId++) {
+                const cells = [];
+                
+                for (let row = 0; row < rows; row++) {
+                    for (let col = 0; col < cols; col++) {
+                        if (gridData[row][col] === droneId) {
+                            const x = ((cols - 1 - col) * cellSize + cellSize / 2);
+                            const y = row * cellSize + cellSize / 2;
+                            cells.push({
+                                row: row,
+                                col: col,
+                                x: x,
+                                y: y,
+                                painted: paintedData[row][col],
+                                paintNow: paintNowData[row][col]
+                            });
+                        }
+                    }
+                }
+                
+                cells.sort((a, b) => {
+                    if (a.row !== b.row) return a.row - b.row;
+                    return b.col - a.col;
+                });
+                
+                if (cells.length > 0) {
+                    const paintedCount = cells.filter(c => c.painted).length;
+                    const paintNowCount = cells.filter(c => c.paintNow).length;
+                    exportObj.drones.push({
+                        id: droneId + 1,
+                        color: droneColors[droneId],
+                        cellCount: cells.length,
+                        paintedCount: paintedCount,
+                        paintNowCount: paintNowCount,
+                        area: cells.length * cellSize * cellSize,
+                        cells: cells
+                    });
+                }
+            }
+            
+            const exportArea = document.getElementById('exportArea');
+            exportArea.value = JSON.stringify(exportObj, null, 2);
+        }
+        
+        function generateMissions() {
+            const cellSize = parseFloat(document.getElementById('cellSize').value) / 100;
+            const canvasWidth = parseFloat(document.getElementById('canvasWidth').value) / 100;
+            const canvasHeight = parseFloat(document.getElementById('canvasHeight').value) / 100;
+            
+            const approachHeight = parseFloat(document.getElementById('approachHeight').value);
+            const paintDepth = parseFloat(document.getElementById('paintDepth').value);
+            const liftHeight = parseFloat(document.getElementById('liftHeight').value);
+            const exitHeight = parseFloat(document.getElementById('exitHeight').value);
+            
+            const entryYOffsets = [
+                parseFloat(document.getElementById('drone1EntryY').value),
+                parseFloat(document.getElementById('drone2EntryY').value),
+                parseFloat(document.getElementById('drone3EntryY').value),
+                parseFloat(document.getElementById('drone4EntryY').value),
+                parseFloat(document.getElementById('drone5EntryY').value)
+            ];
+            
+            function generateGradualWaypoints(axis, totalDistance, speed) {
+                const absDistance = Math.abs(totalDistance);
+                
+                if (absDistance <= 0.9) {
+                    return [[axis, totalDistance.toFixed(2), speed]];
+                }
+                
+                let stepSize;
+                if (absDistance >= 2.0) {
+                    stepSize = 0.5;
+                } else if (absDistance >= 1.5) {
+                    stepSize = 0.4;
+                } else {
+                    stepSize = 0.3;
+                }
+                
+                const numSteps = Math.floor(absDistance / stepSize);
+                const remainder = absDistance - (numSteps * stepSize);
+                const sign = totalDistance >= 0 ? 1 : -1;
+                
+                const waypoints = [];
+                
+                for (let i = 0; i < numSteps; i++) {
+                    waypoints.push([axis, (sign * stepSize).toFixed(2), speed]);
+                }
+                
+                if (remainder > 0.05) {
+                    waypoints.push([axis, (sign * remainder).toFixed(2), speed]);
+                }
+                
+                return waypoints;
+            }
+            
+            let pythonCode = '# Generated Drone Missions\n';
+            pythonCode += `# Canvas: ${(canvasWidth*100).toFixed(1)}cm × ${(canvasHeight*100).toFixed(1)}cm\n\n`;
+            
+            for (let droneId = 0; droneId < 5; droneId++) {
+                const cells = [];
+                
+                for (let row = 0; row < rows; row++) {
+                    for (let col = 0; col < cols; col++) {
+                        if (gridData[row][col] === droneId) {
+                            const x = ((cols - 1 - col) * cellSize + cellSize / 2);
+                            const y = (row * cellSize + cellSize / 2);
+                            cells.push({ row, col, x, y });
+                        }
+                    }
+                }
+                
+                cells.sort((a, b) => {
+                    if (a.row !== b.row) return a.row - b.row;
+                    return b.col - a.col;
+                });
+                
+                if (cells.length === 0) continue;
+                
+                const entryY = entryYOffsets[droneId];
+                
+                pythonCode += `# ============================================\n`;
+                pythonCode += `# DRONE ${droneId + 1} - ${cells.length} dots\n`;
+                pythonCode += `# Entry Y offset: ${entryY.toFixed(2)}m\n`;
+                pythonCode += `# ============================================\n`;
+                pythonCode += `mission_drone${droneId + 1} = [\n`;
+                
+                if (entryY !== 0) {
+                    pythonCode += `    # get y to FRONT side\n`;
+                    const entryWaypoints = generateGradualWaypoints([0, 1, 0], entryY, Math.abs(entryY) > 0.5 ? '5' : '3');
+                    entryWaypoints.forEach(wp => {
+                        pythonCode += `    [${JSON.stringify(wp[0])}, ${wp[1]}, ${wp[2]}],\n`;
+                    });
+                    pythonCode += `\n`;
+                }
+                
+                cells.forEach((cell, idx) => {
+                    pythonCode += `    # DOT${idx + 1}`;
+                    
+                    if (idx === 0) {
+                        pythonCode += ` at (${cell.x.toFixed(3)}m, ${cell.y.toFixed(3)}m)\n`;
+                        pythonCode += `    # ABOVE point to paint\n`;
+                        
+                        const xWaypoints = generateGradualWaypoints([1, 0, 0], approachHeight, '5');
+                        xWaypoints.forEach(wp => {
+                            pythonCode += `    [${JSON.stringify(wp[0])}, ${wp[1]}, ${wp[2]}],\n`;
+                        });
+                        
+                        const yRamp = cell.y > 0.6 ? 0.60 : (cell.y * 0.5);
+                        const yWaypoints = generateGradualWaypoints([0, 1, 0], cell.y, '3');
+                        
+                        if (yWaypoints.length === 1) {
+                            pythonCode += `    [${JSON.stringify(yWaypoints[0][0])}, ${yWaypoints[0][1]}, ${yWaypoints[0][2]}, ${yRamp.toFixed(2)}],\n`;
+                        } else {
+                            yWaypoints.forEach((wp, wpIdx) => {
+                                if (wpIdx === yWaypoints.length - 1) {
+                                    pythonCode += `    [${JSON.stringify(wp[0])}, ${wp[1]}, ${wp[2]}, ${yRamp.toFixed(2)}],\n`;
+                                } else {
+                                    pythonCode += `    [${JSON.stringify(wp[0])}, ${wp[1]}, ${wp[2]}],\n`;
+                                }
+                            });
+                        }
+                        
+                        const xCorrection = cell.x - approachHeight;
+                        if (Math.abs(xCorrection) > 0.01) {
+                            const xCorrWaypoints = generateGradualWaypoints([1, 0, 0], xCorrection, '3');
+                            xCorrWaypoints.forEach(wp => {
+                                pythonCode += `    [${JSON.stringify(wp[0])}, ${wp[1]}, ${wp[2]}],\n`;
+                            });
+                        }
+                    } else {
+                        const prevCell = cells[idx - 1];
+                        const dx = cell.x - prevCell.x;
+                        const dy = cell.y - prevCell.y;
+                        
+                        pythonCode += `\n`;
+                        
+                        const needX = Math.abs(dx) > 0.001;
+                        const needY = Math.abs(dy) > 0.001;
+                        
+                        if (needX && needY) {
+                            pythonCode += `    # XY\n`;
+                            const xWaypoints = generateGradualWaypoints([1, 0, 0], dx, '3');
+                            xWaypoints.forEach(wp => {
+                                pythonCode += `    [${JSON.stringify(wp[0])}, ${wp[1]}, ${wp[2]}],\n`;
+                            });
+                            const yWaypoints = generateGradualWaypoints([0, 1, 0], dy, '3');
+                            yWaypoints.forEach(wp => {
+                                pythonCode += `    [${JSON.stringify(wp[0])}, ${wp[1]}, ${wp[2]}],\n`;
+                            });
+                        } else if (needX) {
+                            pythonCode += `    # X\n`;
+                            const xWaypoints = generateGradualWaypoints([1, 0, 0], dx, '3');
+                            xWaypoints.forEach(wp => {
+                                pythonCode += `    [${JSON.stringify(wp[0])}, ${wp[1]}, ${wp[2]}],\n`;
+                            });
+                        } else if (needY) {
+                            pythonCode += `    # Y\n`;
+                            const yWaypoints = generateGradualWaypoints([0, 1, 0], dy, '3');
+                            yWaypoints.forEach(wp => {
+                                pythonCode += `    [${JSON.stringify(wp[0])}, ${wp[1]}, ${wp[2]}],\n`;
+                            });
+                        }
+                    }
+                    
+                    if (idx === 0) {
+                        pythonCode += `    # DOWN to paint (gradual)\n`;
+                        pythonCode += `    [[0, 0, -1], ${paintDepth.toFixed(2)}, 1, 0.02],\n`;
+                        pythonCode += `    # UP after painting\n`;
+                        pythonCode += `    [[0, 0, 1], ${liftHeight.toFixed(2)}, 3],\n`;
+                    } else {
+                        pythonCode += `    [[0, 0, -1], ${liftHeight.toFixed(2)}, 1, 0.02],\n`;
+                        pythonCode += `    [[0, 0, 1], ${liftHeight.toFixed(2)}, 3],\n`;
+                    }
+                    
+                    if (idx < cells.length - 1) {
+                        pythonCode += `\n`;
+                    }
+                });
+                
+                const lastCell = cells[cells.length - 1];
+                const exitY = canvasHeight - lastCell.y + 0.5;
+                const exitRamp = exitY > 1.0 ? (exitY * 0.6).toFixed(2) : '0.3';
+                
+                pythonCode += `\n    ##### EXITING #####\n`;
+                pythonCode += `    # UP enough height to exit\n`;
+                pythonCode += `    [[0, 0, 1], ${exitHeight.toFixed(2)}, 3],\n`;
+                pythonCode += `    # FORWARD Y to EXIT\n`;
+                
+                const exitWaypoints = generateGradualWaypoints([0, 1, 0], exitY, '1');
+                if (exitWaypoints.length === 1) {
+                    pythonCode += `    [${JSON.stringify(exitWaypoints[0][0])}, ${exitWaypoints[0][1]}, ${exitWaypoints[0][2]}, ${exitRamp}],\n\n`;
+                } else {
+                    exitWaypoints.forEach((wp, wpIdx) => {
+                        if (wpIdx === exitWaypoints.length - 1) {
+                            pythonCode += `    [${JSON.stringify(wp[0])}, ${wp[1]}, ${wp[2]}, ${exitRamp}],\n`;
+                        } else {
+                            pythonCode += `    [${JSON.stringify(wp[0])}, ${wp[1]}, ${wp[2]}],\n`;
+                        }
+                    });
+                    pythonCode += `\n`;
+                }
+                
+                pythonCode += `]\n\n`;
+            }
+            
+            const exportArea = document.getElementById('exportArea');
+            exportArea.value = pythonCode;
+        }
+        
+        // Save/Load Functions
+        function showStatus(message, isSuccess = true) {
+            const statusDiv = document.getElementById('saveStatus');
+            statusDiv.textContent = message;
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = isSuccess ? '#d4edda' : '#f8d7da';
+            statusDiv.style.color = isSuccess ? '#155724' : '#721c24';
+            statusDiv.style.border = isSuccess ? '1px solid #c3e6cb' : '1px solid #f5c6cb';
+            
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 3000);
+        }
+        
+        function saveDrawing() {
+            const drawingData = {
+                version: '1.1',
+                timestamp: new Date().toISOString(),
+                settings: {
+                    canvasWidth: parseFloat(document.getElementById('canvasWidth').value),
+                    canvasHeight: parseFloat(document.getElementById('canvasHeight').value),
+                    cellSize: parseFloat(document.getElementById('cellSize').value),
+                    displayCellSize: parseInt(document.getElementById('displayCellSize').value),
+                    approachHeight: parseFloat(document.getElementById('approachHeight').value),
+                    paintDepth: parseFloat(document.getElementById('paintDepth').value),
+                    liftHeight: parseFloat(document.getElementById('liftHeight').value),
+                    exitHeight: parseFloat(document.getElementById('exitHeight').value),
+                    drone1EntryY: parseFloat(document.getElementById('drone1EntryY').value),
+                    drone2EntryY: parseFloat(document.getElementById('drone2EntryY').value),
+                    drone3EntryY: parseFloat(document.getElementById('drone3EntryY').value),
+                    drone4EntryY: parseFloat(document.getElementById('drone4EntryY').value),
+                    drone5EntryY: parseFloat(document.getElementById('drone5EntryY').value)
+                },
+                grid: {
+                    rows: rows,
+                    cols: cols,
+                    gridData: gridData,
+                    paintedData: paintedData,
+                    paintNowData: paintNowData
+                }
+            };
+            
+            localStorage.setItem('droneMuralDrawing', JSON.stringify(drawingData));
+            showStatus('✓ Drawing saved to browser storage!', true);
+        }
+        
+        function loadDrawing() {
+            const savedData = localStorage.getItem('droneMuralDrawing');
+            
+            if (!savedData) {
+                showStatus('✗ No saved drawing found in browser storage', false);
+                return;
+            }
+            
+            try {
+                const drawingData = JSON.parse(savedData);
+                
+                // Restore settings
+                document.getElementById('canvasWidth').value = drawingData.settings.canvasWidth;
+                document.getElementById('canvasHeight').value = drawingData.settings.canvasHeight;
+                document.getElementById('cellSize').value = drawingData.settings.cellSize;
+                document.getElementById('displayCellSize').value = drawingData.settings.displayCellSize;
+                document.getElementById('approachHeight').value = drawingData.settings.approachHeight;
+                document.getElementById('paintDepth').value = drawingData.settings.paintDepth;
+                document.getElementById('liftHeight').value = drawingData.settings.liftHeight;
+                document.getElementById('exitHeight').value = drawingData.settings.exitHeight;
+                document.getElementById('drone1EntryY').value = drawingData.settings.drone1EntryY;
+                document.getElementById('drone2EntryY').value = drawingData.settings.drone2EntryY;
+                document.getElementById('drone3EntryY').value = drawingData.settings.drone3EntryY;
+                document.getElementById('drone4EntryY').value = drawingData.settings.drone4EntryY;
+                document.getElementById('drone5EntryY').value = drawingData.settings.drone5EntryY;
+                
+                // Restore grid
+                rows = drawingData.grid.rows;
+                cols = drawingData.grid.cols;
+                gridData = drawingData.grid.gridData;
+                paintedData = drawingData.grid.paintedData;
+                paintNowData = drawingData.grid.paintNowData || Array(rows).fill(null).map(() => Array(cols).fill(false));
+                
+                // Rebuild grid display
+                const cellSize = parseFloat(document.getElementById('cellSize').value);
+                const displayCellSize = parseInt(document.getElementById('displayCellSize').value);
+                const canvasWidth = parseFloat(document.getElementById('canvasWidth').value);
+                const canvasHeight = parseFloat(document.getElementById('canvasHeight').value);
+                
+                const grid = document.getElementById('grid');
+                grid.style.gridTemplateColumns = `repeat(${cols}, ${displayCellSize}px)`;
+                grid.innerHTML = '';
+                
+                for (let row = 0; row < rows; row++) {
+                    for (let col = 0; col < cols; col++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'cell';
+                        cell.style.width = `${displayCellSize}px`;
+                        cell.style.height = `${displayCellSize}px`;
+                        cell.dataset.row = row;
+                        cell.dataset.col = col;
+                        cell.onclick = () => toggleCell(row, col);
+                        grid.appendChild(cell);
+                        updateCell(row, col);
+                    }
+                }
+                
+                // Regenerate axis labels
+                const xAxisLabels = document.getElementById('xAxisLabels');
+                xAxisLabels.innerHTML = '';
+                const xStep = 10;
+                for (let x = canvasWidth; x >= 0; x -= xStep) {
+                    const label = document.createElement('div');
+                    label.textContent = `${x}cm`;
+                    label.style.flex = '1';
+                    label.style.textAlign = 'center';
+                    xAxisLabels.appendChild(label);
+                }
+                
+                const yAxisLabels = document.getElementById('yAxisLabels');
+                yAxisLabels.innerHTML = '';
+                const yStep = 10;
+                for (let y = 0; y <= canvasHeight; y += yStep) {
+                    const label = document.createElement('div');
+                    label.textContent = `${y}cm`;
+                    label.style.flex = '1';
+                    label.style.textAlign = 'left';
+                    yAxisLabels.appendChild(label);
+                }
+                
+                addMidlines(canvasWidth, canvasHeight, displayCellSize);
+                updateStats();
+                exportData();
+                
+                const timestamp = new Date(drawingData.timestamp).toLocaleString();
+                showStatus(`✓ Drawing loaded! (Saved: ${timestamp})`, true);
+            } catch (error) {
+                showStatus('✗ Error loading drawing: ' + error.message, false);
+            }
+        }
+        
+        function exportDrawingFile() {
+            const drawingData = {
+                version: '1.1',
+                timestamp: new Date().toISOString(),
+                settings: {
+                    canvasWidth: parseFloat(document.getElementById('canvasWidth').value),
+                    canvasHeight: parseFloat(document.getElementById('canvasHeight').value),
+                    cellSize: parseFloat(document.getElementById('cellSize').value),
+                    displayCellSize: parseInt(document.getElementById('displayCellSize').value),
+                    approachHeight: parseFloat(document.getElementById('approachHeight').value),
+                    paintDepth: parseFloat(document.getElementById('paintDepth').value),
+                    liftHeight: parseFloat(document.getElementById('liftHeight').value),
+                    exitHeight: parseFloat(document.getElementById('exitHeight').value),
+                    drone1EntryY: parseFloat(document.getElementById('drone1EntryY').value),
+                    drone2EntryY: parseFloat(document.getElementById('drone2EntryY').value),
+                    drone3EntryY: parseFloat(document.getElementById('drone3EntryY').value),
+                    drone4EntryY: parseFloat(document.getElementById('drone4EntryY').value),
+                    drone5EntryY: parseFloat(document.getElementById('drone5EntryY').value)
+                },
+                grid: {
+                    rows: rows,
+                    cols: cols,
+                    gridData: gridData,
+                    paintedData: paintedData,
+                    paintNowData: paintNowData
+                }
+            };
+            
+            const blob = new Blob([JSON.stringify(drawingData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `drone_mural_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showStatus('✓ Drawing file downloaded!', true);
+        }
+        
+        function importDrawingFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const drawingData = JSON.parse(e.target.result);
+                    
+                    // Restore settings
+                    document.getElementById('canvasWidth').value = drawingData.settings.canvasWidth;
+                    document.getElementById('canvasHeight').value = drawingData.settings.canvasHeight;
+                    document.getElementById('cellSize').value = drawingData.settings.cellSize;
+                    document.getElementById('displayCellSize').value = drawingData.settings.displayCellSize;
+                    document.getElementById('approachHeight').value = drawingData.settings.approachHeight;
+                    document.getElementById('paintDepth').value = drawingData.settings.paintDepth;
+                    document.getElementById('liftHeight').value = drawingData.settings.liftHeight;
+                    document.getElementById('exitHeight').value = drawingData.settings.exitHeight;
+                    document.getElementById('drone1EntryY').value = drawingData.settings.drone1EntryY;
+                    document.getElementById('drone2EntryY').value = drawingData.settings.drone2EntryY;
+                    document.getElementById('drone3EntryY').value = drawingData.settings.drone3EntryY;
+                    document.getElementById('drone4EntryY').value = drawingData.settings.drone4EntryY;
+                    document.getElementById('drone5EntryY').value = drawingData.settings.drone5EntryY;
+                    
+                    // Restore grid
+                    rows = drawingData.grid.rows;
+                    cols = drawingData.grid.cols;
+                    gridData = drawingData.grid.gridData;
+                    paintedData = drawingData.grid.paintedData;
+                    paintNowData = drawingData.grid.paintNowData || Array(rows).fill(null).map(() => Array(cols).fill(false));
+                    
+                    // Rebuild grid display
+                    const cellSize = parseFloat(document.getElementById('cellSize').value);
+                    const displayCellSize = parseInt(document.getElementById('displayCellSize').value);
+                    const canvasWidth = parseFloat(document.getElementById('canvasWidth').value);
+                    const canvasHeight = parseFloat(document.getElementById('canvasHeight').value);
+                    
+                    const grid = document.getElementById('grid');
+                    grid.style.gridTemplateColumns = `repeat(${cols}, ${displayCellSize}px)`;
+                    grid.innerHTML = '';
+                    
+                    for (let row = 0; row < rows; row++) {
+                        for (let col = 0; col < cols; col++) {
+                            const cell = document.createElement('div');
+                            cell.className = 'cell';
+                            cell.style.width = `${displayCellSize}px`;
+                            cell.style.height = `${displayCellSize}px`;
+                            cell.dataset.row = row;
+                            cell.dataset.col = col;
+                            cell.onclick = () => toggleCell(row, col);
+                            grid.appendChild(cell);
+                            updateCell(row, col);
+                        }
+                    }
+                    
+                    // Regenerate axis labels
+                    const xAxisLabels = document.getElementById('xAxisLabels');
+                    xAxisLabels.innerHTML = '';
+                    const xStep = 10;
+                    for (let x = canvasWidth; x >= 0; x -= xStep) {
+                        const label = document.createElement('div');
+                        label.textContent = `${x}cm`;
+                        label.style.flex = '1';
+                        label.style.textAlign = 'center';
+                        xAxisLabels.appendChild(label);
+                    }
+                    
+                    const yAxisLabels = document.getElementById('yAxisLabels');
+                    yAxisLabels.innerHTML = '';
+                    const yStep = 10;
+                    for (let y = 0; y <= canvasHeight; y += yStep) {
+                        const label = document.createElement('div');
+                        label.textContent = `${y}cm`;
+                        label.style.flex = '1';
+                        label.style.textAlign = 'left';
+                        yAxisLabels.appendChild(label);
+                    }
+                    
+                    addMidlines(canvasWidth, canvasHeight, displayCellSize);
+                    updateStats();
+                    exportData();
+                    
+                    const timestamp = new Date(drawingData.timestamp).toLocaleString();
+                    showStatus(`✓ Drawing imported from file! (Created: ${timestamp})`, true);
+                } catch (error) {
+                    showStatus('✗ Error importing file: ' + error.message, false);
+                }
+            };
+            reader.readAsText(file);
+            
+            // Reset file input so the same file can be imported again
+            event.target.value = '';
+        }
+        
+        // Auto-save every 30 seconds
+        setInterval(() => {
+            if (rows > 0 && cols > 0) {
+                saveDrawing();
+            }
+        }, 30000);
+        
+        // Initialize on load
+        initGrid();
+        
+        // Try to load saved drawing on startup
+        window.addEventListener('load', () => {
+            const savedData = localStorage.getItem('droneMuralDrawing');
+            if (savedData) {
+                const loadOnStartup = confirm('Found a saved drawing. Would you like to load it?');
+                if (loadOnStartup) {
+                    loadDrawing();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

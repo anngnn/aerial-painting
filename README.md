@@ -76,7 +76,7 @@ python3 analyse.py 2025-02-16_204633.csv -vxcomp -x
 aerial-painting/
 │
 ├── tuning/                 # Control system and flight infrastructure
-│   ├── analyze.py         # Flight data analysis tool
+│   ├── analyse.py         # Flight data analysis tool
 │   ├── ccodeLINUX.c       # PID controller implementation
 │
 └── usr_codes/              # User mission files
