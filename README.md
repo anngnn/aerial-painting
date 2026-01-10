@@ -311,5 +311,10 @@ The project uses waypoint-based missions where each drone navigates to discrete 
 - Dots are created with move → descend → paint → ascend sequences
 - Canvas size: 0.8m × 0.5m
 
+## Acknowledgements
+Special thanks to Drew Curtis, Prof. Matt Elwin, and Prof. Michael Rubenstein for their guidance and support throughout this project.
+
+The swarmOS and drone hardware were developed by Drew Curtis. My main contributions are the gripper designs and the cascaded PID controller. 
+
 ---
 
